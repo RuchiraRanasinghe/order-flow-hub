@@ -104,7 +104,7 @@ const Order = () => {
         {/* Hero Section */}
         <div className="mb-12 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            මීයා රෝගීන්
+            ටිනියා රෝගීන්
           </h1>
           <p className="text-xl text-muted-foreground mb-8">
             10,000 වැඩි සංඛ්‍යාවක් සුව ලත් කළ ආයුර්වේදික ආලේපය
