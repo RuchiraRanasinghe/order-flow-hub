@@ -10,9 +10,13 @@ import {
   Settings,
   LogOut,
   Menu,
+  Truck,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
+
+import { useState } from "react";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -21,6 +25,7 @@ interface AdminLayoutProps {
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
   { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
+  { icon: Truck, label: "Courier", path: "/admin/courier", showBadge: true },
   { icon: Package, label: "Products", path: "/admin/products" },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
   { icon: Settings, label: "Settings", path: "/admin/settings" },
@@ -29,13 +34,27 @@ const menuItems = [
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [courierCount, setCourierCount] = useState(0);
 
   useEffect(() => {
     const isAuth = localStorage.getItem("adminAuth");
     if (!isAuth) {
       navigate("/admin/login");
     }
-  }, [navigate]);
+
+    // Calculate courier orders count
+    const updateCourierCount = () => {
+      const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+      const count = orders.filter((o: any) => o.status === "sent-to-courier").length;
+      setCourierCount(count);
+    };
+
+    updateCourierCount();
+    
+    // Listen for storage changes
+    window.addEventListener("storage", updateCourierCount);
+    return () => window.removeEventListener("storage", updateCourierCount);
+  }, [navigate, location]);
 
   const handleLogout = () => {
     localStorage.removeItem("adminAuth");
@@ -58,6 +77,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           >
             <item.icon className="w-5 h-5" />
             <span className="font-medium">{item.label}</span>
+            {item.showBadge && courierCount > 0 && (
+              <Badge className="ml-auto">{courierCount}</Badge>
+            )}
           </NavLink>
         ))}
       </nav>
