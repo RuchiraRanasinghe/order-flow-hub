@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Eye, Trash2, ArrowRight } from "lucide-react";
+import { Search, Eye, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,7 +21,7 @@ interface Order {
   createdAt: string;
 }
 
-const Orders = () => {
+const Courier = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,7 +39,14 @@ const Orders = () => {
 
   const loadOrders = () => {
     const storedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-    setOrders(storedOrders);
+    // Only show orders that are sent to courier, in transit, or delivered
+    const courierOrders = storedOrders.filter(
+      (order: Order) => 
+        order.status === "sent-to-courier" || 
+        order.status === "in-transit" || 
+        order.status === "delivered"
+    );
+    setOrders(courierOrders);
   };
 
   const filterOrders = () => {
@@ -61,54 +68,41 @@ const Orders = () => {
   };
 
   const handleStatusChange = (orderId: string, newStatus: string) => {
-    const updatedOrders = orders.map((order) =>
+    const allOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+    const updatedOrders = allOrders.map((order: Order) =>
       order.id === orderId ? { ...order, status: newStatus } : order
     );
     localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    setOrders(updatedOrders);
+    
+    // Reload courier orders
+    loadOrders();
+    
     toast({
       title: "Status Updated",
-      description: "Order status has been updated successfully",
-    });
-  };
-
-  const handleDelete = (orderId: string) => {
-    const updatedOrders = orders.filter((order) => order.id !== orderId);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    setOrders(updatedOrders);
-    toast({
-      title: "Order Deleted",
-      description: "Order has been deleted successfully",
-    });
-  };
-
-  const handleSendToCourier = (orderId: string) => {
-    const updatedOrders = orders.map((order) =>
-      order.id === orderId ? { ...order, status: "sent-to-courier" } : order
-    );
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    setOrders(updatedOrders);
-    toast({
-      title: "Sent to Courier",
-      description: "Order has been sent to courier successfully",
+      description: "Courier status has been updated successfully",
     });
   };
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive"> = {
-      pending: "secondary",
-      received: "default",
-      issued: "default",
+      "sent-to-courier": "secondary",
+      "in-transit": "default",
+      "delivered": "default",
     };
-    return <Badge variant={variants[status] || "default"}>{status}</Badge>;
+    const labels: Record<string, string> = {
+      "sent-to-courier": "Sent to Courier",
+      "in-transit": "In Transit",
+      "delivered": "Delivered",
+    };
+    return <Badge variant={variants[status] || "default"}>{labels[status] || status}</Badge>;
   };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-4xl font-bold">Orders Management</h1>
-          <p className="text-muted-foreground mt-2">Manage and track all customer orders</p>
+          <h1 className="text-4xl font-bold">Courier Management</h1>
+          <p className="text-muted-foreground mt-2">Track and manage delivery orders</p>
         </div>
 
         {/* Filters */}
@@ -131,19 +125,18 @@ const Orders = () => {
                 <SelectTrigger className="rounded-2xl">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Orders</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="received">Received</SelectItem>
-                    <SelectItem value="issued">Issued</SelectItem>
-                    <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
-                  </SelectContent>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
+                  <SelectItem value="in-transit">In Transit</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </CardContent>
         </Card>
 
-        {/* Orders Table */}
+        {/* Courier Orders Table */}
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -151,6 +144,7 @@ const Orders = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Address</TableHead>
                     <TableHead>Mobile</TableHead>
                     <TableHead>Product</TableHead>
                     <TableHead>Quantity</TableHead>
@@ -163,6 +157,7 @@ const Orders = () => {
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.fullName}</TableCell>
+                      <TableCell className="max-w-xs truncate">{order.address}</TableCell>
                       <TableCell>{order.mobile}</TableCell>
                       <TableCell>Herbal Cream</TableCell>
                       <TableCell>{order.quantity}</TableCell>
@@ -171,14 +166,13 @@ const Orders = () => {
                           value={order.status}
                           onValueChange={(value) => handleStatusChange(order.id, value)}
                         >
-                          <SelectTrigger className="w-32">
+                          <SelectTrigger className="w-40">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="received">Received</SelectItem>
-                            <SelectItem value="issued">Issued</SelectItem>
                             <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
+                            <SelectItem value="in-transit">In Transit</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
@@ -194,22 +188,15 @@ const Orders = () => {
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          {order.status !== "sent-to-courier" && (
+                          {order.status !== "delivered" && (
                             <Button
                               className="bg-primary hover:bg-primary/90"
                               size="icon"
-                              onClick={() => handleSendToCourier(order.id)}
+                              onClick={() => handleStatusChange(order.id, order.status === "sent-to-courier" ? "in-transit" : "delivered")}
                             >
-                              <ArrowRight className="w-4 h-4" />
+                              <CheckCircle className="w-4 h-4" />
                             </Button>
                           )}
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => handleDelete(order.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -218,7 +205,7 @@ const Orders = () => {
               </Table>
               {filteredOrders.length === 0 && (
                 <div className="text-center py-12 text-muted-foreground">
-                  No orders found
+                  No courier orders found
                 </div>
               )}
             </div>
@@ -229,4 +216,4 @@ const Orders = () => {
   );
 };
 
-export default Orders;
+export default Courier;

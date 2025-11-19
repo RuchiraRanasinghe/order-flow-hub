@@ -4,7 +4,8 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, Phone, Package, Calendar, CheckCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Package, Calendar, CheckCircle, Truck } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Order {
   id: string;
@@ -20,6 +21,7 @@ interface Order {
 const OrderDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
@@ -27,6 +29,22 @@ const OrderDetails = () => {
     const foundOrder = orders.find((o: Order) => o.id === id);
     setOrder(foundOrder || null);
   }, [id]);
+
+  const handleSendToCourier = () => {
+    if (!order) return;
+    
+    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
+    const updatedOrders = orders.map((o: Order) =>
+      o.id === order.id ? { ...o, status: "sent-to-courier" } : o
+    );
+    localStorage.setItem("orders", JSON.stringify(updatedOrders));
+    setOrder({ ...order, status: "sent-to-courier" });
+    
+    toast({
+      title: "Sent to Courier",
+      description: "Order has been sent to courier successfully",
+    });
+  };
 
   if (!order) {
     return (
@@ -187,7 +205,18 @@ const OrderDetails = () => {
                   </div>
                 </div>
 
+{order.status !== "sent-to-courier" && order.status !== "in-transit" && order.status !== "delivered" && (
+                  <Button
+                    className="w-full rounded-2xl mb-3 bg-primary hover:bg-primary/90"
+                    onClick={handleSendToCourier}
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    Send to Courier
+                  </Button>
+                )}
+                
                 <Button
+                  variant="outline"
                   className="w-full rounded-2xl"
                   onClick={() => {
                     const message = `නව ඇණවුමක්!\n\nනම: ${order.fullName}\nදුරකථන: ${order.mobile}\nලිපිනය: ${order.address}\nප්‍රමාණය: ${order.quantity}`;

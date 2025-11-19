@@ -9,6 +9,7 @@ import {
   XCircle,
   TrendingUp,
   Calendar,
+  Truck,
 } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -29,6 +30,7 @@ const Dashboard = () => {
     pending: 0,
     received: 0,
     issued: 0,
+    courier: 0,
     today: 0,
     monthly: 0,
   });
@@ -46,6 +48,7 @@ const Dashboard = () => {
       pending: storedOrders.filter((o: Order) => o.status === "pending").length,
       received: storedOrders.filter((o: Order) => o.status === "received").length,
       issued: storedOrders.filter((o: Order) => o.status === "issued").length,
+      courier: storedOrders.filter((o: Order) => o.status === "sent-to-courier" || o.status === "in-transit").length,
       today: storedOrders.filter((o: Order) => new Date(o.createdAt) >= todayStart).length,
       monthly: storedOrders.filter((o: Order) => new Date(o.createdAt) >= monthStart).length,
     };
@@ -123,6 +126,16 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-success">{stats.issued}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Courier Orders</CardTitle>
+              <Truck className="w-5 h-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-primary">{stats.courier}</div>
             </CardContent>
           </Card>
 
