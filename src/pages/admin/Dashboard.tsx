@@ -6,12 +6,12 @@ import {
   ShoppingCart,
   Clock,
   CheckCircle,
-  XCircle,
   TrendingUp,
   Calendar,
   Truck,
 } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { getOrders } from "@/services/orderService";
 
 interface Order {
   id: string;
@@ -36,24 +36,34 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    const storedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-    setOrders(storedOrders);
+    const fetchOrders = async () => {
+      try {
+        const token = localStorage.getItem("adminAuthToken") || ""; // use a token if required
+        const response = await getOrders(token);
+        setOrders(response);
 
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        // Calculate stats
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const newStats = {
-      total: storedOrders.length,
-      pending: storedOrders.filter((o: Order) => o.status === "pending").length,
-      received: storedOrders.filter((o: Order) => o.status === "received").length,
-      issued: storedOrders.filter((o: Order) => o.status === "issued").length,
-      courier: storedOrders.filter((o: Order) => o.status === "sent-to-courier" || o.status === "in-transit").length,
-      today: storedOrders.filter((o: Order) => new Date(o.createdAt) >= todayStart).length,
-      monthly: storedOrders.filter((o: Order) => new Date(o.createdAt) >= monthStart).length,
+        const newStats = {
+          total: response.length,
+          pending: response.filter((o: Order) => o.status === "pending").length,
+          received: response.filter((o: Order) => o.status === "received").length,
+          issued: response.filter((o: Order) => o.status === "issued").length,
+          courier: response.filter((o: Order) => o.status === "sent-to-courier" || o.status === "in-transit").length,
+          today: response.filter((o: Order) => new Date(o.createdAt) >= todayStart).length,
+          monthly: response.filter((o: Order) => new Date(o.createdAt) >= monthStart).length,
+        };
+
+        setStats(newStats);
+      } catch (error) {
+        console.error("Failed to fetch orders:", error);
+      }
     };
 
-    setStats(newStats);
+    fetchOrders();
   }, []);
 
   const statusData = [
@@ -205,10 +215,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {orders.slice(-5).reverse().map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center justify-between p-4 bg-muted rounded-xl"
-                >
+                <div key={order.id} className="flex items-center justify-between p-4 bg-muted rounded-xl">
                   <div className="flex-1">
                     <p className="font-semibold">{order.fullName}</p>
                     <p className="text-sm text-muted-foreground">{order.mobile}</p>

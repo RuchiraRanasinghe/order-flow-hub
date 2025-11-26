@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, Eye, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { getCourierOrders, updateCourierStatus } from "@/services/courierService";
 
 interface Order {
   id: string;
@@ -29,27 +30,28 @@ const Courier = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  const token = localStorage.getItem("adminAuthToken") || "";
+
+  // Load courier orders from API
+  const loadOrders = async () => {
+    try {
+      const data = await getCourierOrders(token);
+      setOrders(data);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch courier orders",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     loadOrders();
   }, []);
 
+  // Filter and search
   useEffect(() => {
-    filterOrders();
-  }, [searchTerm, statusFilter, orders]);
-
-  const loadOrders = () => {
-    const storedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-    // Only show orders that are sent to courier, in transit, or delivered
-    const courierOrders = storedOrders.filter(
-      (order: Order) => 
-        order.status === "sent-to-courier" || 
-        order.status === "in-transit" || 
-        order.status === "delivered"
-    );
-    setOrders(courierOrders);
-  };
-
-  const filterOrders = () => {
     let filtered = orders;
 
     if (statusFilter !== "all") {
@@ -65,29 +67,32 @@ const Courier = () => {
     }
 
     setFilteredOrders(filtered);
-  };
+  }, [orders, searchTerm, statusFilter]);
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    const allOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-    const updatedOrders = allOrders.map((order: Order) =>
-      order.id === orderId ? { ...order, status: newStatus } : order
-    );
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    
-    // Reload courier orders
-    loadOrders();
-    
-    toast({
-      title: "Status Updated",
-      description: "Courier status has been updated successfully",
-    });
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      await updateCourierStatus(orderId, newStatus, token);
+      setOrders((prev) =>
+        prev.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order))
+      );
+      toast({
+        title: "Status Updated",
+        description: `Courier status changed to "${newStatus}"`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update courier status",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive"> = {
+    const variants: Record<string, "default" | "secondary" | "primary"> = {
       "sent-to-courier": "secondary",
       "in-transit": "default",
-      "delivered": "default",
+      "delivered": "primary",
     };
     const labels: Record<string, string> = {
       "sent-to-courier": "Sent to Courier",
@@ -159,26 +164,10 @@ const Courier = () => {
                       <TableCell className="font-medium">{order.fullName}</TableCell>
                       <TableCell className="max-w-xs truncate">{order.address}</TableCell>
                       <TableCell>{order.mobile}</TableCell>
-                      <TableCell>Herbal Cream</TableCell>
+                      <TableCell>{order.product}</TableCell>
                       <TableCell>{order.quantity}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={order.status}
-                          onValueChange={(value) => handleStatusChange(order.id, value)}
-                        >
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
-                            <SelectItem value="in-transit">In Transit</SelectItem>
-                            <SelectItem value="delivered">Delivered</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Button
@@ -192,7 +181,12 @@ const Courier = () => {
                             <Button
                               className="bg-primary hover:bg-primary/90"
                               size="icon"
-                              onClick={() => handleStatusChange(order.id, order.status === "sent-to-courier" ? "in-transit" : "delivered")}
+                              onClick={() =>
+                                handleStatusChange(
+                                  order.id,
+                                  order.status === "sent-to-courier" ? "in-transit" : "delivered"
+                                )
+                              }
                             >
                               <CheckCircle className="w-4 h-4" />
                             </Button>
