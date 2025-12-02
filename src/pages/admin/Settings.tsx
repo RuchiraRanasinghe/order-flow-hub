@@ -100,24 +100,57 @@ const Settings = () => {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const currentPassword = formData.get('currentPassword') as string;
+                  const newPassword = formData.get('newPassword') as string;
+                  const confirmPassword = formData.get('confirmPassword') as string;
+
+                  if (!currentPassword || !newPassword || !confirmPassword) {
+                    toast({
+                      title: "Error",
+                      description: "All fields are required",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  if (newPassword !== confirmPassword) {
+                    toast({
+                      title: "Error",
+                      description: "New passwords do not match",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
+                  if (newPassword.length < 6) {
+                    toast({
+                      title: "Error",
+                      description: "Password must be at least 6 characters long",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+
                   toast({
                     title: "Password Updated",
                     description: "Your password has been changed successfully",
                   });
+                  e.currentTarget.reset();
                 }}
                 className="space-y-4"
               >
                 <div>
                   <label className="block text-sm font-medium mb-2">Current Password</label>
-                  <Input type="password" className="rounded-2xl" />
+                  <Input type="password" name="currentPassword" className="rounded-2xl" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">New Password</label>
-                  <Input type="password" className="rounded-2xl" />
+                  <Input type="password" name="newPassword" className="rounded-2xl" required minLength={6} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Confirm New Password</label>
-                  <Input type="password" className="rounded-2xl" />
+                  <Input type="password" name="confirmPassword" className="rounded-2xl" required minLength={6} />
                 </div>
                 <Button type="submit" className="w-full rounded-2xl">
                   Change Password

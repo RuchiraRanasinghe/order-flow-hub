@@ -49,9 +49,12 @@ const Products = () => {
     setLoading(true);
     try {
       const data = await getProducts();
-      setProducts(data);
+      // Ensure data is an array
+      const productsArray = Array.isArray(data) ? data : [];
+      setProducts(productsArray);
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to load products", variant: "destructive" });
+      setProducts([]);
     } finally {
       setLoading(false);
     }

@@ -33,10 +33,13 @@ const Analytics = () => {
   const loadOrders = async () => {
     setLoading(true);
     try {
-      const data: Order[] = await request("orders", { method: "GET" });
-      setOrders(data);
+      const data = await request("orders", { method: "GET" });
+      // Ensure data is an array
+      const ordersArray = Array.isArray(data) ? data : [];
+      setOrders(ordersArray);
     } catch (error: any) {
       console.error("Failed to load orders:", error.message || error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }

@@ -23,7 +23,15 @@ async function request(endpoint: string, options: RequestOptions = {}) {
     throw new Error(errorData.message || 'API request failed');
   }
 
-  return res.json();
+  const response = await res.json();
+  
+  // Extract data from response if it has the standard format
+  if (response.success && response.data !== undefined) {
+    return response.data;
+  }
+  
+  // Otherwise return the full response
+  return response;
 }
 
 export default request;

@@ -136,13 +136,13 @@ const Dashboard = () => {
   });
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "success" | "info" | "warning" | "primary"> = {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       pending: "secondary",
-      received: "info",
-      issued: "success",
-      "sent-to-courier": "primary",
-      "in-transit": "primary",
-      delivered: "success",
+      received: "default",
+      issued: "outline",
+      "sent-to-courier": "outline",
+      "in-transit": "outline",
+      delivered: "outline",
     };
     return <Badge variant={variants[status] || "default"}>{status}</Badge>;
   };
