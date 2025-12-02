@@ -69,6 +69,7 @@ app.get('/api/orders', (req, res) => {
       address: '123 Main Street, Colombo',
       mobile: '94701234567',
       product_id: 'PROD001',
+      product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       product_name: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       quantity: 2,
       status: 'pending',
@@ -82,6 +83,7 @@ app.get('/api/orders', (req, res) => {
       address: '456 Galle Road, Colombo',
       mobile: '94701234568',
       product_id: 'PROD001',
+      product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       product_name: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       quantity: 3,
       status: 'received',
@@ -95,6 +97,7 @@ app.get('/api/orders', (req, res) => {
       address: '789 Kandy Road, Kandy',
       mobile: '94701234569',
       product_id: 'PROD001',
+      product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       product_name: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       quantity: 1,
       status: 'issued',
@@ -108,6 +111,7 @@ app.get('/api/orders', (req, res) => {
       address: '321 Beach Road, Galle',
       mobile: '94701234570',
       product_id: 'PROD001',
+      product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       product_name: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       quantity: 2,
       status: 'sent-to-courier',
@@ -119,6 +123,93 @@ app.get('/api/orders', (req, res) => {
   res.json({
     success: true,
     data: orders
+  });
+});
+
+// Get single order by ID
+app.get('/api/orders/:id', (req, res) => {
+  const { id } = req.params;
+  
+  // Sample orders data
+  const orders = [
+    {
+      id: '1',
+      order_id: 'ORD202401001',
+      fullName: 'Kamal Perera',
+      address: '123 Main Street, Colombo',
+      mobile: '94701234567',
+      product_id: 'PROD001',
+      product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
+      quantity: '2',
+      status: 'pending',
+      total_amount: 20000.00,
+      createdAt: '2024-01-01T10:00:00Z'
+    },
+    {
+      id: '2',
+      order_id: 'ORD202401002',
+      fullName: 'Rusiru Pramod',
+      address: '456 Galle Road, Colombo',
+      mobile: '94701234568',
+      product_id: 'PROD001',
+      product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
+      quantity: '3',
+      status: 'received',
+      total_amount: 30000.00,
+      createdAt: '2024-01-02T10:00:00Z'
+    },
+    {
+      id: '3',
+      order_id: 'ORD202401003',
+      fullName: 'Nimal Silva',
+      address: '789 Kandy Road, Kandy',
+      mobile: '94701234569',
+      product_id: 'PROD001',
+      product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
+      quantity: '1',
+      status: 'issued',
+      total_amount: 10000.00,
+      createdAt: '2024-01-03T10:00:00Z'
+    },
+    {
+      id: '4',
+      order_id: 'ORD202401004',
+      fullName: 'Anil Fernando',
+      address: '321 Beach Road, Galle',
+      mobile: '94701234570',
+      product_id: 'PROD001',
+      product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
+      quantity: '2',
+      status: 'sent-to-courier',
+      total_amount: 20000.00,
+      createdAt: '2024-01-04T10:00:00Z'
+    }
+  ];
+  
+  const order = orders.find(o => o.id === id);
+  
+  if (order) {
+    res.json({
+      success: true,
+      data: order
+    });
+  } else {
+    res.status(404).json({
+      success: false,
+      message: 'Order not found'
+    });
+  }
+});
+
+// Update order status
+app.put('/api/orders/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  res.json({
+    success: true,
+    message: 'Order status updated successfully',
+    data: { id, status }
   });
 });
 
