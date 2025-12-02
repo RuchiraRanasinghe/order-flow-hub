@@ -1,15 +1,9 @@
+// src/pages/admin/Dashboard.tsx
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  ShoppingCart,
-  Clock,
-  CheckCircle,
-  TrendingUp,
-  Calendar,
-  Truck,
-} from "lucide-react";
+import { ShoppingCart, Clock, CheckCircle, TrendingUp, Calendar, Truck } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { getOrders } from "@/services/orderService";
 
@@ -18,14 +12,24 @@ interface Order {
   fullName: string;
   mobile: string;
   product: string;
-  quantity: string;
+  quantity: number | string;
   status: string;
   createdAt: string;
 }
 
+interface Stats {
+  total: number;
+  pending: number;
+  received: number;
+  issued: number;
+  courier: number;
+  today: number;
+  monthly: number;
+}
+
 const Dashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<Stats>({
     total: 0,
     pending: 0,
     received: 0,
@@ -34,32 +38,68 @@ const Dashboard = () => {
     today: 0,
     monthly: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const token = localStorage.getItem("adminAuthToken") || ""; // use a token if required
-        const response = await getOrders(token);
-        setOrders(response);
+        setLoading(true);
+        // Remove the token parameter since your service doesn't need it
+        const response = await getOrders();
+        
+        console.log("Orders API Response:", response); // Debug log
+        
+        // Handle different response formats
+        let ordersData: Order[] = [];
+        
+        if (Array.isArray(response)) {
+          // If response is already an array
+          ordersData = response;
+        } else if (response && response.data && Array.isArray(response.data)) {
+          // If response has data property with array
+          ordersData = response.data;
+        } else if (response && response.orders && Array.isArray(response.orders)) {
+          // If response has orders property with array
+          ordersData = response.orders;
+        }
+        
+        console.log("Processed orders data:", ordersData); // Debug log
+        setOrders(ordersData);
 
         // Calculate stats
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        const newStats = {
-          total: response.length,
-          pending: response.filter((o: Order) => o.status === "pending").length,
-          received: response.filter((o: Order) => o.status === "received").length,
-          issued: response.filter((o: Order) => o.status === "issued").length,
-          courier: response.filter((o: Order) => o.status === "sent-to-courier" || o.status === "in-transit").length,
-          today: response.filter((o: Order) => new Date(o.createdAt) >= todayStart).length,
-          monthly: response.filter((o: Order) => new Date(o.createdAt) >= monthStart).length,
+        const newStats: Stats = {
+          total: ordersData.length,
+          pending: ordersData.filter(o => o.status === "pending").length,
+          received: ordersData.filter(o => o.status === "received").length,
+          issued: ordersData.filter(o => o.status === "issued").length,
+          courier: ordersData.filter(o => o.status === "sent-to-courier" || o.status === "in-transit" || o.status === "delivered").length,
+          today: ordersData.filter(o => {
+            try {
+              return new Date(o.createdAt) >= todayStart;
+            } catch {
+              return false;
+            }
+          }).length,
+          monthly: ordersData.filter(o => {
+            try {
+              return new Date(o.createdAt) >= monthStart;
+            } catch {
+              return false;
+            }
+          }).length,
         };
 
         setStats(newStats);
       } catch (error) {
         console.error("Failed to fetch orders:", error);
+        // Set empty state to prevent further errors
+        setOrders([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -72,22 +112,53 @@ const Dashboard = () => {
     { name: "Issued", value: stats.issued },
   ];
 
+  // Safely generate daily data
   const dailyData = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
     const dateStr = date.toISOString().split("T")[0];
-    const count = orders.filter((o) => o.createdAt.startsWith(dateStr)).length;
-    return { name: date.toLocaleDateString("en-US", { weekday: "short" }), orders: count };
+    
+    let count = 0;
+    if (Array.isArray(orders)) {
+      count = orders.filter(o => {
+        try {
+          return o.createdAt && o.createdAt.startsWith && o.createdAt.startsWith(dateStr);
+        } catch {
+          return false;
+        }
+      }).length;
+    }
+    
+    return { 
+      name: date.toLocaleDateString("en-US", { weekday: "short" }), 
+      orders: count 
+    };
   });
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive"> = {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "success" | "info" | "warning" | "primary"> = {
       pending: "secondary",
-      received: "default",
-      issued: "default",
+      received: "info",
+      issued: "success",
+      "sent-to-courier": "primary",
+      "in-transit": "primary",
+      delivered: "success",
     };
     return <Badge variant={variants[status] || "default"}>{status}</Badge>;
   };
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -100,7 +171,7 @@ const Dashboard = () => {
         {/* Stats Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
               <ShoppingCart className="w-5 h-5 text-muted-foreground" />
             </CardHeader>
@@ -110,47 +181,47 @@ const Dashboard = () => {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-              <Clock className="w-5 h-5 text-warning" />
+              <Clock className="w-5 h-5 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-warning">{stats.pending}</div>
+              <div className="text-3xl font-bold text-yellow-500">{stats.pending}</div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Received Orders</CardTitle>
-              <CheckCircle className="w-5 h-5 text-info" />
+              <CheckCircle className="w-5 h-5 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-info">{stats.received}</div>
+              <div className="text-3xl font-bold text-blue-500">{stats.received}</div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Issued Orders</CardTitle>
-              <CheckCircle className="w-5 h-5 text-success" />
+              <CheckCircle className="w-5 h-5 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-success">{stats.issued}</div>
+              <div className="text-3xl font-bold text-green-500">{stats.issued}</div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Courier Orders</CardTitle>
-              <Truck className="w-5 h-5 text-primary" />
+              <Truck className="w-5 h-5 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-primary">{stats.courier}</div>
+              <div className="text-3xl font-bold text-purple-500">{stats.courier}</div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
               <Calendar className="w-5 h-5 text-muted-foreground" />
             </CardHeader>
@@ -160,7 +231,7 @@ const Dashboard = () => {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Monthly Orders</CardTitle>
               <TrendingUp className="w-5 h-5 text-muted-foreground" />
             </CardHeader>
@@ -183,7 +254,7 @@ const Dashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="value" fill="hsl(var(--primary))" />
+                  <Bar dataKey="value" fill="#8884d8" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -200,7 +271,7 @@ const Dashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="orders" stroke="hsl(var(--primary))" strokeWidth={2} />
+                  <Line type="monotone" dataKey="orders" stroke="#8884d8" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -214,20 +285,26 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {orders.slice(-5).reverse().map((order) => (
-                <div key={order.id} className="flex items-center justify-between p-4 bg-muted rounded-xl">
-                  <div className="flex-1">
-                    <p className="font-semibold">{order.fullName}</p>
-                    <p className="text-sm text-muted-foreground">{order.mobile}</p>
+              {Array.isArray(orders) && orders.length > 0 ? (
+                orders.slice(-5).reverse().map(order => (
+                  <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                    <div className="flex-1">
+                      <p className="font-semibold">{order.fullName}</p>
+                      <p className="text-sm text-muted-foreground">{order.mobile}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-sm font-medium">Qty: {order.quantity}</p>
+                    </div>
+                    <div>{getStatusBadge(order.status)}</div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm font-medium">Qty: {order.quantity}</p>
-                  </div>
-                  <div>{getStatusBadge(order.status)}</div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No orders found</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {loading ? "Loading..." : "Try refreshing or check your API connection"}
+                  </p>
                 </div>
-              ))}
-              {orders.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">No orders yet</p>
               )}
             </div>
           </CardContent>

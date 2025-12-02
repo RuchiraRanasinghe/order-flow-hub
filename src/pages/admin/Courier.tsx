@@ -35,14 +35,25 @@ const Courier = () => {
   // Load courier orders from API
   const loadOrders = async () => {
     try {
-      const data = await getCourierOrders(token);
-      setOrders(data);
+      const response = await getCourierOrders(token);
+      
+      // Extract orders array from response
+      let ordersData: Order[] = [];
+      
+      if (Array.isArray(response)) {
+        ordersData = response;
+      } else if (response && Array.isArray(response.data)) {
+        ordersData = response.data;
+      }
+      
+      setOrders(ordersData);
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message || "Failed to fetch courier orders",
         variant: "destructive",
       });
+      setOrders([]); // Set empty array on error
     }
   };
 
@@ -52,7 +63,12 @@ const Courier = () => {
 
   // Filter and search
   useEffect(() => {
-    let filtered = orders;
+    if (!Array.isArray(orders)) {
+      setFilteredOrders([]);
+      return;
+    }
+
+    let filtered = [...orders];
 
     if (statusFilter !== "all") {
       filtered = filtered.filter((order) => order.status === statusFilter);
@@ -62,7 +78,7 @@ const Courier = () => {
       filtered = filtered.filter(
         (order) =>
           order.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.mobile.includes(searchTerm)
+          (order.mobile && order.mobile.includes(searchTerm))
       );
     }
 
@@ -159,49 +175,56 @@ const Courier = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.fullName}</TableCell>
-                      <TableCell className="max-w-xs truncate">{order.address}</TableCell>
-                      <TableCell>{order.mobile}</TableCell>
-                      <TableCell>{order.product}</TableCell>
-                      <TableCell>{order.quantity}</TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => navigate(`/admin/orders/${order.id}`)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {order.status !== "delivered" && (
+                  {Array.isArray(filteredOrders) && filteredOrders.length > 0 ? (
+                    filteredOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.fullName}</TableCell>
+                        <TableCell className="max-w-xs truncate">{order.address || 'N/A'}</TableCell>
+                        <TableCell>{order.mobile || 'N/A'}</TableCell>
+                        <TableCell>{order.product || 'N/A'}</TableCell>
+                        <TableCell>{order.quantity || 0}</TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>
+                          {order.createdAt ? 
+                            new Date(order.createdAt).toLocaleDateString() : 
+                            'N/A'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
                             <Button
-                              className="bg-primary hover:bg-primary/90"
+                              variant="outline"
                               size="icon"
-                              onClick={() =>
-                                handleStatusChange(
-                                  order.id,
-                                  order.status === "sent-to-courier" ? "in-transit" : "delivered"
-                                )
-                              }
+                              onClick={() => navigate(`/admin/orders/${order.id}`)}
                             >
-                              <CheckCircle className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                             </Button>
-                          )}
-                        </div>
+                            {order.status !== "delivered" && (
+                              <Button
+                                className="bg-primary hover:bg-primary/90"
+                                size="icon"
+                                onClick={() =>
+                                  handleStatusChange(
+                                    order.id,
+                                    order.status === "sent-to-courier" ? "in-transit" : "delivered"
+                                  )
+                                }
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                        No courier orders found
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
-              {filteredOrders.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  No courier orders found
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
