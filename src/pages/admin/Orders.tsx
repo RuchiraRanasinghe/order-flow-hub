@@ -1,22 +1,41 @@
+// src/pages/admin/Orders.tsx
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"; // Added missing Button import
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Eye, Trash2, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Search, ArrowRight, Eye, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getOrders, updateOrderStatus } from "@/services/orderService";
+import { useNavigate } from "react-router-dom";
 
 interface Order {
   id: string;
   fullName: string;
-  address: string;
   mobile: string;
   product: string;
-  quantity: string;
+  quantity: number;
   status: string;
   createdAt: string;
 }
@@ -24,26 +43,62 @@ interface Order {
 const Orders = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+
+  // Load orders from API
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await getOrders();
+      console.log("Orders API response:", response);
+      
+      // Extract orders array from response
+      let ordersData: Order[] = [];
+      
+      if (Array.isArray(response)) {
+        // If response is already an array
+        ordersData = response;
+      } else if (response && Array.isArray(response.data)) {
+        // If response has data property with array
+        ordersData = response.data;
+      } else if (response && Array.isArray(response.orders)) {
+        // If response has orders property with array
+        ordersData = response.orders;
+      }
+      
+      console.log("Processed orders data:", ordersData);
+      setOrders(ordersData);
+      
+    } catch (error: any) {
+      console.error("Error loading orders:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch orders",
+        variant: "destructive",
+      });
+      setOrders([]); // Set empty array on error
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadOrders();
   }, []);
 
+  // Filter orders based on search & status
   useEffect(() => {
-    filterOrders();
-  }, [searchTerm, statusFilter, orders]);
+    if (!Array.isArray(orders)) {
+      setFilteredOrders([]);
+      return;
+    }
 
-  const loadOrders = () => {
-    const storedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-    setOrders(storedOrders);
-  };
-
-  const filterOrders = () => {
-    let filtered = orders;
+    let filtered = [...orders];
 
     if (statusFilter !== "all") {
       filtered = filtered.filter((order) => order.status === statusFilter);
@@ -53,62 +108,79 @@ const Orders = () => {
       filtered = filtered.filter(
         (order) =>
           order.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.mobile.includes(searchTerm)
+          (order.mobile && order.mobile.includes(searchTerm))
       );
     }
 
     setFilteredOrders(filtered);
+  }, [orders, searchTerm, statusFilter]);
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+      toast({
+        title: "Status Updated",
+        description: `Order status changed to "${newStatus}"`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update order status",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    const updatedOrders = orders.map((order) =>
-      order.id === orderId ? { ...order, status: newStatus } : order
-    );
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    setOrders(updatedOrders);
-    toast({
-      title: "Status Updated",
-      description: "Order status has been updated successfully",
-    });
-  };
+  const handleSendToCourier = (orderId: string) =>
+    handleStatusChange(orderId, "sent-to-courier");
 
   const handleDelete = (orderId: string) => {
-    const updatedOrders = orders.filter((order) => order.id !== orderId);
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    setOrders(updatedOrders);
     toast({
-      title: "Order Deleted",
-      description: "Order has been deleted successfully",
-    });
-  };
-
-  const handleSendToCourier = (orderId: string) => {
-    const updatedOrders = orders.map((order) =>
-      order.id === orderId ? { ...order, status: "sent-to-courier" } : order
-    );
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    setOrders(updatedOrders);
-    toast({
-      title: "Sent to Courier",
-      description: "Order has been sent to courier successfully",
+      title: "Action Not Allowed",
+      description: "Deleting orders is disabled in production.",
+      variant: "destructive",
     });
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive"> = {
-      pending: "secondary",
-      received: "default",
-      issued: "default",
-    };
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> =
+      {
+        pending: "secondary",
+        received: "default",
+        issued: "default",
+        "sent-to-courier": "outline",
+        "in-transit": "outline",
+        "delivered": "default",
+      };
     return <Badge variant={variants[status] || "default"}>{status}</Badge>;
   };
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading orders...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-4xl font-bold">Orders Management</h1>
-          <p className="text-muted-foreground mt-2">Manage and track all customer orders</p>
+          <p className="text-muted-foreground mt-2">
+            Manage and track all customer orders
+          </p>
         </div>
 
         {/* Filters */}
@@ -131,13 +203,15 @@ const Orders = () => {
                 <SelectTrigger className="rounded-2xl">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Orders</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="received">Received</SelectItem>
-                    <SelectItem value="issued">Issued</SelectItem>
-                    <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
-                  </SelectContent>
+                <SelectContent>
+                  <SelectItem value="all">All Orders</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="received">Received</SelectItem>
+                  <SelectItem value="issued">Issued</SelectItem>
+                  <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
+                  <SelectItem value="in-transit">In Transit</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </CardContent>
@@ -160,67 +234,59 @@ const Orders = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.fullName}</TableCell>
-                      <TableCell>{order.mobile}</TableCell>
-                      <TableCell>Herbal Cream</TableCell>
-                      <TableCell>{order.quantity}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={order.status}
-                          onValueChange={(value) => handleStatusChange(order.id, value)}
-                        >
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="received">Received</SelectItem>
-                            <SelectItem value="issued">Issued</SelectItem>
-                            <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => navigate(`/admin/orders/${order.id}`)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {order.status !== "sent-to-courier" && (
+                  {Array.isArray(filteredOrders) && filteredOrders.length > 0 ? (
+                    filteredOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">{order.fullName}</TableCell>
+                        <TableCell>{order.mobile || 'N/A'}</TableCell>
+                        <TableCell>{order.product || 'N/A'}</TableCell>
+                        <TableCell>{order.quantity || 0}</TableCell>
+                        <TableCell>{getStatusBadge(order.status || 'pending')}</TableCell>
+                        <TableCell>
+                          {order.createdAt ? 
+                            new Date(order.createdAt).toLocaleDateString() : 
+                            'N/A'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
                             <Button
-                              className="bg-primary hover:bg-primary/90"
+                              variant="outline"
                               size="icon"
-                              onClick={() => handleSendToCourier(order.id)}
+                              onClick={() => navigate(`/admin/orders/${order.id}`)}
                             >
-                              <ArrowRight className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                             </Button>
-                          )}
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => handleDelete(order.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                            {order.status !== "sent-to-courier" && 
+                             order.status !== "in-transit" && 
+                             order.status !== "delivered" && (
+                              <Button
+                                className="bg-primary hover:bg-primary/90"
+                                size="icon"
+                                onClick={() => handleSendToCourier(order.id)}
+                              >
+                                <ArrowRight className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => handleDelete(order.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                        {loading ? 'Loading orders...' : 'No orders found'}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
-              {filteredOrders.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  No orders found
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>

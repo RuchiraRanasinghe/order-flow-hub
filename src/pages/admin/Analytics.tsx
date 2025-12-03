@@ -16,6 +16,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import request from "@/services/api";
 
 interface Order {
   id: string;
@@ -26,12 +27,29 @@ interface Order {
 
 const Analytics = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load orders from API
+  const loadOrders = async () => {
+    setLoading(true);
+    try {
+      const data = await request("orders", { method: "GET" });
+      // Ensure data is an array
+      const ordersArray = Array.isArray(data) ? data : [];
+      setOrders(ordersArray);
+    } catch (error: any) {
+      console.error("Failed to load orders:", error.message || error);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const storedOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-    setOrders(storedOrders);
+    loadOrders();
   }, []);
 
+  // Prepare data for charts
   const statusData = [
     {
       name: "Pending",
@@ -46,6 +64,16 @@ const Analytics = () => {
     {
       name: "Issued",
       value: orders.filter((o) => o.status === "issued").length,
+      color: "hsl(var(--success))",
+    },
+    {
+      name: "Sent to Courier",
+      value: orders.filter((o) => o.status === "sent-to-courier").length,
+      color: "hsl(var(--secondary))",
+    },
+    {
+      name: "Delivered",
+      value: orders.filter((o) => o.status === "delivered").length,
       color: "hsl(var(--success))",
     },
   ];
@@ -155,12 +183,7 @@ const Analytics = () => {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                  />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -178,18 +201,8 @@ const Analytics = () => {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="orders"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="hsl(var(--success))"
-                    strokeWidth={2}
-                  />
+                  <Line type="monotone" dataKey="orders" stroke="hsl(var(--primary))" strokeWidth={2} />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--success))" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>

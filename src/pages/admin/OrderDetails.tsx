@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MapPin, Phone, Package, Calendar, CheckCircle, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getOrderById, updateOrderStatus } from "@/services/orderService";
 
 interface Order {
   id: string;
@@ -23,28 +24,67 @@ const OrderDetails = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  const token = localStorage.getItem("adminAuthToken") || "";
+
+  // Fetch order from API
   useEffect(() => {
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    const foundOrder = orders.find((o: Order) => o.id === id);
-    setOrder(foundOrder || null);
+    const fetchOrder = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const data = await getOrderById(id, token);
+        setOrder(data);
+      } catch (error: any) {
+        console.error("Error fetching order:", error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to fetch order details",
+          variant: "destructive",
+        });
+        setOrder(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrder();
   }, [id]);
 
-  const handleSendToCourier = () => {
+  const handleSendToCourier = async () => {
     if (!order) return;
     
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    const updatedOrders = orders.map((o: Order) =>
-      o.id === order.id ? { ...o, status: "sent-to-courier" } : o
-    );
-    localStorage.setItem("orders", JSON.stringify(updatedOrders));
-    setOrder({ ...order, status: "sent-to-courier" });
-    
-    toast({
-      title: "Sent to Courier",
-      description: "Order has been sent to courier successfully",
-    });
+    try {
+      await updateOrderStatus(order.id, "sent-to-courier", token);
+      setOrder({ ...order, status: "sent-to-courier" });
+      
+      toast({
+        title: "Sent to Courier",
+        description: "Order has been sent to courier successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update order status",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading order details...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   if (!order) {
     return (
