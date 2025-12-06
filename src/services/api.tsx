@@ -12,26 +12,41 @@ async function request(endpoint: string, options: RequestOptions = {}) {
     ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
   };
 
-  const res = await fetch(`${API_BASE}/${endpoint}`, {
-    ...options,
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  });
+  const url = `${API_BASE}/${endpoint}`;
+  console.log(`API Request: ${options.method || 'GET'} ${url}`, options.body);
 
-  if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || 'API request failed');
-  }
+  try {
+    const res = await fetch(url, {
+      ...options,
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+    });
 
-  const response = await res.json();
-  
-  // Extract data from response if it has the standard format
-  if (response.success && response.data !== undefined) {
-    return response.data;
+    if (!res.ok) {
+      let errorData;
+      try {
+        errorData = await res.json();
+      } catch {
+        errorData = { message: `API request failed with status ${res.status}` };
+      }
+      console.error('API Error:', res.status, errorData);
+      throw new Error(errorData.message || `API request failed with status ${res.status}`);
+    }
+
+    const response = await res.json();
+    console.log('API Response:', response);
+    
+    // Extract data from response if it has the standard format
+    if (response.success && response.data !== undefined) {
+      return response.data;
+    }
+    
+    // Otherwise return the full response
+    return response;
+  } catch (error: any) {
+    console.error('API Request Error:', error);
+    throw error;
   }
-  
-  // Otherwise return the full response
-  return response;
 }
 
 export default request;

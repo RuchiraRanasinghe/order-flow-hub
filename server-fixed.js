@@ -126,6 +126,94 @@ app.get('/api/orders', (req, res) => {
   });
 });
 
+// Create new order
+app.post('/api/orders', (req, res) => {
+  const { fullName, address, mobile, product, quantity, status } = req.body;
+  
+  // Validate required fields
+  if (!fullName || !address || !mobile || !product || !quantity) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required fields'
+    });
+  }
+  
+  // Generate order ID
+  const orderId = `ORD${Date.now()}`;
+  
+  // Calculate price based on product
+  let unitPrice = 10000.00; // Default price
+  let productName = 'NIRVAAN 5KG (100% PURE COCONUT OIL)';
+  
+  // Create order object
+  const newOrder = {
+    id: Date.now(),
+    order_id: orderId,
+    fullName,
+    address,
+    mobile,
+    product_id: 'PROD001',
+    product: productName,
+    product_name: productName,
+    quantity: parseInt(quantity),
+    status: status || 'pending',
+    total_amount: unitPrice * parseInt(quantity),
+    createdAt: new Date().toISOString()
+  };
+  
+  console.log('New order created:', newOrder);
+  
+  res.json({
+    success: true,
+    message: 'Order created successfully',
+    data: newOrder
+  });
+});
+
+// Create inquiry
+app.post('/api/inquiries', (req, res) => {
+  const { message } = req.body;
+  
+  if (!message) {
+    return res.status(400).json({
+      success: false,
+      message: 'Message is required'
+    });
+  }
+  
+  const newInquiry = {
+    id: Date.now(),
+    message,
+    createdAt: new Date().toISOString(),
+    status: 'pending'
+  };
+  
+  console.log('New inquiry created:', newInquiry);
+  
+  res.json({
+    success: true,
+    message: 'Inquiry submitted successfully',
+    data: newInquiry
+  });
+});
+
+// Get all inquiries
+app.get('/api/inquiries', (req, res) => {
+  const inquiries = [
+    {
+      id: 1,
+      message: 'මෙහි ඉතිරි තොරතුරු ලබාගන්න පුළුවන්ද?',
+      createdAt: '2024-01-01T10:00:00Z',
+      status: 'pending'
+    }
+  ];
+  
+  res.json({
+    success: true,
+    data: inquiries
+  });
+});
+
 // Get single order by ID
 app.get('/api/orders/:id', (req, res) => {
   const { id } = req.params;
