@@ -208,7 +208,7 @@ const Orders = () => {
                 <SelectContent>
                   <SelectItem value="all">All Orders</SelectItem>
                   <SelectItem value="received">Received</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="sended">Sended</SelectItem>
                 </SelectContent>
               </Select>
             </div>
