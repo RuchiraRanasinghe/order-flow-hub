@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Eye, CheckCircle } from "lucide-react";
+import { Search, Eye, CheckCircle, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { getCourierOrders, updateCourierStatus } from "@/services/courierService";
+import { InvoiceModal } from "@/components/modals/InvoiceModal";
 
 interface Order {
   id: string;
@@ -20,6 +21,12 @@ interface Order {
   quantity: string;
   status: string;
   createdAt: string;
+  email?: string;
+  price?: number;
+  deliveryCharge?: number;
+  discount?: number;
+  courierCompany?: string;
+  trackingNumber?: string;
 }
 
 const Courier = () => {
@@ -29,6 +36,8 @@ const Courier = () => {
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
   const token = localStorage.getItem("adminAuthToken") || "";
 
@@ -105,12 +114,87 @@ const Courier = () => {
     return <Badge variant={variants[status] || "default"}>{labels[status] || status}</Badge>;
   };
 
+  const downloadOrderDetails = (order: Order) => {
+    const content = `
+Order Details
+=============
+Customer: ${order.fullName}
+Address: ${order.address}
+Mobile: ${order.mobile}
+Product: ${order.product}
+Quantity: ${order.quantity}
+Status: ${order.status}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+Order ID: ${order.id}
+    `.trim();
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `order-${order.id}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Downloaded",
+      description: "Order details downloaded successfully",
+    });
+  };
+
+  const downloadAllOrders = () => {
+    const content = filteredOrders.map((order, index) => `
+Order ${index + 1}
+=============
+Customer: ${order.fullName}
+Address: ${order.address}
+Mobile: ${order.mobile}
+Product: ${order.product}
+Quantity: ${order.quantity}
+Status: ${order.status}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+Order ID: ${order.id}
+    `).join('\n\n');
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `courier-orders-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Downloaded",
+      description: `${filteredOrders.length} courier orders downloaded successfully`,
+    });
+  };
+
+  const openInvoiceModal = (order: Order) => {
+    setSelectedOrder(order);
+    setIsInvoiceModalOpen(true);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-4xl font-bold">Courier Management</h1>
-          <p className="text-muted-foreground mt-2">Track and manage delivery orders</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold">Courier Management</h1>
+            <p className="text-muted-foreground mt-2">Track and manage delivery orders</p>
+          </div>
+          <Button
+            onClick={downloadAllOrders}
+            className="bg-primary hover:bg-primary/90"
+            disabled={filteredOrders.length === 0}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Download All
+          </Button>
         </div>
 
         {/* Filters */}
@@ -176,10 +260,20 @@ const Courier = () => {
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => navigate(`/admin/orders/${order.id}`)}
+                            onClick={() => openInvoiceModal(order)}
                             className="h-9 w-9"
+                            title="View Invoice"
                           >
                             <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => downloadOrderDetails(order)}
+                            className="h-9 w-9"
+                            title="Download Order"
+                          >
+                            <Download className="w-4 h-4" />
                           </Button>
                           {order.status !== "delivered" && (
                             <Button
@@ -191,6 +285,7 @@ const Courier = () => {
                                   order.status === "sended" ? "in-transit" : "delivered"
                                 )
                               }
+                              title="Update Status"
                             >
                               <CheckCircle className="w-4 h-4" />
                             </Button>
@@ -210,6 +305,14 @@ const Courier = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Invoice Modal */}
+      <InvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        order={selectedOrder}
+        onDownload={downloadOrderDetails}
+      />
     </AdminLayout>
   );
 };
