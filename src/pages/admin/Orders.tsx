@@ -148,12 +148,11 @@ const Orders = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> =
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline" | "yellow" | "green"> =
       {
-        pending: "secondary",
-        received: "default",
+        received: "yellow",
         issued: "default",
-        "sended": "outline",
+        "sended": "green",
         "in-transit": "outline",
         "delivered": "default",
       };
@@ -205,11 +204,7 @@ const Orders = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Orders</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="received">Received</SelectItem>
-                  <SelectItem value="issued">Issued</SelectItem>
-                  <SelectItem value="sended">Sent to Courier</SelectItem>
-                  <SelectItem value="in-transit">In Transit</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
               </Select>
@@ -241,7 +236,7 @@ const Orders = () => {
                         <TableCell>{order.mobile || 'N/A'}</TableCell>
                         <TableCell>{order.product || 'N/A'}</TableCell>
                         <TableCell>{order.quantity || 0}</TableCell>
-                        <TableCell>{getStatusBadge(order.status || 'pending')}</TableCell>
+                        <TableCell>{getStatusBadge(order.status || 'received')}</TableCell>
                         <TableCell>
                           {order.createdAt ? 
                             new Date(order.createdAt).toLocaleDateString() : 

@@ -22,7 +22,6 @@ interface Order {
 
 interface Stats {
   total: number;
-  pending: number;
   received: number;
   issued: number;
   courier: number;
@@ -34,7 +33,6 @@ const Dashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats>({
     total: 0,
-    pending: 0,
     received: 0,
     issued: 0,
     courier: 0,
@@ -78,7 +76,6 @@ const Dashboard = () => {
 
         const newStats: Stats = {
           total: ordersData.length,
-          pending: ordersData.filter(o => o.status === "pending").length,
           received: ordersData.filter(o => o.status === "received").length,
           issued: ordersData.filter(o => o.status === "issued").length,
           courier: ordersData.filter(o => o.status === "sended" || o.status === "in-transit" || o.status === "delivered").length,
@@ -135,7 +132,7 @@ const Dashboard = () => {
 
   const statusData = [
     { name: "Total Orders", value: filteredOrders.length },
-    { name: "Received", value: filteredOrders.filter(o => o.status === "pending").length },
+    { name: "Received", value: filteredOrders.filter(o => o.status === "received").length },
     { name: "Issued Orders", value: filteredOrders.filter(o => o.status === "issued").length },
   ];
 
@@ -163,11 +160,10 @@ const Dashboard = () => {
   });
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      pending: "secondary",
-      received: "default",
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline" | "yellow" | "green"> = {
+      received: "yellow",
       issued: "outline",
-      "sended": "outline",
+      "sended": "green",
       "in-transit": "outline",
       delivered: "outline",
     };
@@ -213,7 +209,7 @@ const Dashboard = () => {
               <Clock className="w-5 h-5 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-yellow-500">{stats.pending}</div>
+              <div className="text-3xl font-bold text-yellow-500">{stats.received}</div>
             </CardContent>
           </Card>
 

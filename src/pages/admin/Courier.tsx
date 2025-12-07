@@ -92,8 +92,8 @@ const Courier = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-      "sended": "secondary",
+    const variants: Record<string, "default" | "secondary" | "outline" | "destructive" | "yellow" | "green"> = {
+      "sended": "green",
       "in-transit": "default",
       "delivered": "outline",
     };

@@ -52,14 +52,9 @@ const Analytics = () => {
   // Prepare data for charts
   const statusData = [
     {
-      name: "Pending",
-      value: orders.filter((o) => o.status === "pending").length,
-      color: "hsl(var(--warning))",
-    },
-    {
       name: "Received",
       value: orders.filter((o) => o.status === "received").length,
-      color: "hsl(var(--info))",
+      color: "hsl(var(--warning))",
     },
     {
       name: "Issued",

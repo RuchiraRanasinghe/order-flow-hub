@@ -48,7 +48,7 @@ const Order = () => {
         mobile: formData.mobile,
         product: formData.product,
         quantity: parseInt(formData.quantity),
-        status: "pending",
+        status: "received",
       });
 
       console.log('Order created successfully:', result);

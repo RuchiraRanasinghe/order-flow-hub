@@ -100,7 +100,7 @@ const OrderDetails = () => {
   }
 
   const timeline = [
-    { status: "pending", label: "Order Placed", date: order.createdAt },
+    { status: "received", label: "Order Placed", date: order.createdAt },
     {
       status: "received",
       label: "Order Received",
