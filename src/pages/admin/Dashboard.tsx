@@ -271,15 +271,13 @@ const Dashboard = () => {
         {/* Charts */}
         <div className="grid lg:grid-cols-2 gap-6">
           <Card>
-            <CardHeader>
-              <div className="flex flex-col space-y-4">
-                <CardTitle>Orders by Status</CardTitle>
-                <DateRangePicker
-                  date={dateRange}
-                  onDateChange={setDateRange}
-                  className="w-full"
-                />
-              </div>
+            <CardHeader className="space-y-4">
+              <CardTitle>Orders by Status</CardTitle>
+              <DateRangePicker
+                date={dateRange}
+                onDateChange={setDateRange}
+                className="w-full"
+              />
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -295,8 +293,9 @@ const Dashboard = () => {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="space-y-4">
               <CardTitle>Orders (Last 7 Days)</CardTitle>
+              <div className="h-10" />
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
