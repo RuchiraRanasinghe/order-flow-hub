@@ -98,7 +98,7 @@ const Courier = () => {
       "delivered": "outline",
     };
     const labels: Record<string, string> = {
-      "sended": "Sent to Courier",
+      "sended": "Updated",
       "in-transit": "In Transit",
       "delivered": "Delivered",
     };
@@ -135,7 +135,7 @@ const Courier = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="sended">Sent to Courier</SelectItem>
+                  <SelectItem value="sended">Updated</SelectItem>
                   <SelectItem value="in-transit">In Transit</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
@@ -151,38 +151,39 @@ const Courier = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Mobile</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="py-4 text-left">Customer</TableHead>
+                    <TableHead className="py-4 text-center">Address</TableHead>
+                    <TableHead className="py-4 text-center">Mobile</TableHead>
+                    <TableHead className="py-4 text-center">Product</TableHead>
+                    <TableHead className="py-4 text-center">Quantity</TableHead>
+                    <TableHead className="py-4 text-center">Status</TableHead>
+                    <TableHead className="py-4 text-center">Date</TableHead>
+                    <TableHead className="py-4 text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.fullName}</TableCell>
-                      <TableCell className="max-w-xs truncate">{order.address}</TableCell>
-                      <TableCell>{order.mobile}</TableCell>
-                      <TableCell>{order.product}</TableCell>
-                      <TableCell>{order.quantity}</TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <TableCell className="font-medium py-4">{order.fullName}</TableCell>
+                      <TableCell className="py-4 text-center max-w-xs truncate">{order.address}</TableCell>
+                      <TableCell className="py-4 text-center">{order.mobile}</TableCell>
+                      <TableCell className="py-4 text-center">{order.product}</TableCell>
+                      <TableCell className="py-4 text-center">{order.quantity}</TableCell>
+                      <TableCell className="py-4 text-center">{getStatusBadge(order.status)}</TableCell>
+                      <TableCell className="py-4 text-center">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="py-4">
+                        <div className="flex items-center justify-center gap-3">
                           <Button
                             variant="outline"
                             size="icon"
                             onClick={() => navigate(`/admin/orders/${order.id}`)}
+                            className="h-9 w-9"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
                           {order.status !== "delivered" && (
                             <Button
-                              className="bg-primary hover:bg-primary/90"
+                              className="bg-primary hover:bg-primary/90 h-9 w-9"
                               size="icon"
                               onClick={() =>
                                 handleStatusChange(
