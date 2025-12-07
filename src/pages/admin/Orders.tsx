@@ -222,35 +222,36 @@ const Orders = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Mobile</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="py-4 text-left">Customer</TableHead>
+                    <TableHead className="py-4 text-center">Mobile</TableHead>
+                    <TableHead className="py-4 text-center">Product</TableHead>
+                    <TableHead className="py-4 text-center">Quantity</TableHead>
+                    <TableHead className="py-4 text-center">Status</TableHead>
+                    <TableHead className="py-4 text-center">Date</TableHead>
+                    <TableHead className="py-4 text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {Array.isArray(filteredOrders) && filteredOrders.length > 0 ? (
                     filteredOrders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.fullName}</TableCell>
-                        <TableCell>{order.mobile || 'N/A'}</TableCell>
-                        <TableCell>{order.product || 'N/A'}</TableCell>
-                        <TableCell>{order.quantity || 0}</TableCell>
-                        <TableCell>{getStatusBadge(order.status || 'received')}</TableCell>
-                        <TableCell>
+                        <TableCell className="font-medium py-4">{order.fullName}</TableCell>
+                        <TableCell className="py-4 text-center">{order.mobile || 'N/A'}</TableCell>
+                        <TableCell className="py-4 text-center">{order.product || 'N/A'}</TableCell>
+                        <TableCell className="py-4 text-center">{order.quantity || 0}</TableCell>
+                        <TableCell className="py-4 text-center">{getStatusBadge(order.status || 'received')}</TableCell>
+                        <TableCell className="py-4 text-center">
                           {order.createdAt ? 
                             new Date(order.createdAt).toLocaleDateString() : 
                             'N/A'}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <TableCell className="py-4">
+                          <div className="flex items-center justify-center gap-3">
                             <Button
                               variant="outline"
                               size="icon"
                               onClick={() => navigate(`/admin/orders/${order.id}`)}
+                              className="h-9 w-9"
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -261,7 +262,7 @@ const Orders = () => {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => handleUnsendOrder(order.id)}
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-300"
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-300 h-9 w-9"
                                 title="Unsend Order"
                               >
                                 <Undo2 className="w-4 h-4" />
@@ -271,7 +272,7 @@ const Orders = () => {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => handleSendToCourier(order.id)}
-                                className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                                className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 h-9 w-9"
                                 title="Send to Courier"
                               >
                                 <Send className="w-4 h-4" />
@@ -281,6 +282,7 @@ const Orders = () => {
                               variant="destructive"
                               size="icon"
                               onClick={() => handleDelete(order.id)}
+                              className="h-9 w-9"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
