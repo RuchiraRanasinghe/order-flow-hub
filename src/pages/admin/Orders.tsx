@@ -25,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, ArrowRight, Eye, Trash2 } from "lucide-react";
+import { Search, ArrowRight, Eye, Trash2, Send, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getOrders, updateOrderStatus } from "@/services/orderService";
 import { useNavigate } from "react-router-dom";
@@ -139,6 +139,9 @@ const Orders = () => {
   const handleSendToCourier = (orderId: string) =>
     handleStatusChange(orderId, "sended");
 
+  const handleUnsendOrder = (orderId: string) =>
+    handleStatusChange(orderId, "received");
+
   const handleDelete = (orderId: string) => {
     toast({
       title: "Action Not Allowed",
@@ -251,15 +254,27 @@ const Orders = () => {
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            {order.status !== "sended" && 
-                             order.status !== "in-transit" && 
-                             order.status !== "delivered" && (
+                            {order.status === "sended" || 
+                             order.status === "in-transit" || 
+                             order.status === "delivered" ? (
                               <Button
-                                className="bg-primary hover:bg-primary/90"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleUnsendOrder(order.id)}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-300"
+                                title="Unsend Order"
+                              >
+                                <Undo2 className="w-4 h-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
                                 size="icon"
                                 onClick={() => handleSendToCourier(order.id)}
+                                className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300"
+                                title="Send to Courier"
                               >
-                                <ArrowRight className="w-4 h-4" />
+                                <Send className="w-4 h-4" />
                               </Button>
                             )}
                             <Button
