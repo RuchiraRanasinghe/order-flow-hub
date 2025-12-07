@@ -68,7 +68,7 @@ const Analytics = () => {
     },
     {
       name: "Sent to Courier",
-      value: orders.filter((o) => o.status === "sent-to-courier").length,
+      value: orders.filter((o) => o.status === "sended").length,
       color: "hsl(var(--secondary))",
     },
     {

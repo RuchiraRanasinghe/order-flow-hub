@@ -81,7 +81,7 @@ const Dashboard = () => {
           pending: ordersData.filter(o => o.status === "pending").length,
           received: ordersData.filter(o => o.status === "received").length,
           issued: ordersData.filter(o => o.status === "issued").length,
-          courier: ordersData.filter(o => o.status === "sent-to-courier" || o.status === "in-transit" || o.status === "delivered").length,
+          courier: ordersData.filter(o => o.status === "sended" || o.status === "in-transit" || o.status === "delivered").length,
           today: ordersData.filter(o => {
             try {
               return new Date(o.createdAt) >= todayStart;
@@ -167,7 +167,7 @@ const Dashboard = () => {
       pending: "secondary",
       received: "default",
       issued: "outline",
-      "sent-to-courier": "outline",
+      "sended": "outline",
       "in-transit": "outline",
       delivered: "outline",
     };

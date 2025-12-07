@@ -137,7 +137,7 @@ const Orders = () => {
   };
 
   const handleSendToCourier = (orderId: string) =>
-    handleStatusChange(orderId, "sent-to-courier");
+    handleStatusChange(orderId, "sended");
 
   const handleDelete = (orderId: string) => {
     toast({
@@ -153,7 +153,7 @@ const Orders = () => {
         pending: "secondary",
         received: "default",
         issued: "default",
-        "sent-to-courier": "outline",
+        "sended": "outline",
         "in-transit": "outline",
         "delivered": "default",
       };
@@ -208,7 +208,7 @@ const Orders = () => {
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="received">Received</SelectItem>
                   <SelectItem value="issued">Issued</SelectItem>
-                  <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
+                  <SelectItem value="sended">Sent to Courier</SelectItem>
                   <SelectItem value="in-transit">In Transit</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
@@ -256,7 +256,7 @@ const Orders = () => {
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            {order.status !== "sent-to-courier" && 
+                            {order.status !== "sended" && 
                              order.status !== "in-transit" && 
                              order.status !== "delivered" && (
                               <Button

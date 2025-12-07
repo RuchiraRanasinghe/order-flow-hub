@@ -93,12 +93,12 @@ const Courier = () => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-      "sent-to-courier": "secondary",
+      "sended": "secondary",
       "in-transit": "default",
       "delivered": "outline",
     };
     const labels: Record<string, string> = {
-      "sent-to-courier": "Sent to Courier",
+      "sended": "Sent to Courier",
       "in-transit": "In Transit",
       "delivered": "Delivered",
     };
@@ -135,7 +135,7 @@ const Courier = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
+                  <SelectItem value="sended">Sent to Courier</SelectItem>
                   <SelectItem value="in-transit">In Transit</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
@@ -187,7 +187,7 @@ const Courier = () => {
                               onClick={() =>
                                 handleStatusChange(
                                   order.id,
-                                  order.status === "sent-to-courier" ? "in-transit" : "delivered"
+                                  order.status === "sended" ? "in-transit" : "delivered"
                                 )
                               }
                             >

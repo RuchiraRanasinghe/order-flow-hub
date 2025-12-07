@@ -112,9 +112,9 @@ app.get('/api/orders', (req, res) => {
       mobile: '94701234570',
       product_id: 'PROD001',
       product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
-      product_name: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
+      product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       quantity: 2,
-      status: 'sent-to-courier',
+      status: 'sended',
       total_amount: 20000.00,
       createdAt: '2024-01-04T10:00:00Z'
     }
@@ -268,7 +268,7 @@ app.get('/api/orders/:id', (req, res) => {
       product_id: 'PROD001',
       product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
       quantity: '2',
-      status: 'sent-to-courier',
+      status: 'sended',
       total_amount: 20000.00,
       createdAt: '2024-01-04T10:00:00Z'
     }
@@ -372,7 +372,7 @@ app.get('/api/courier/orders', (req, res) => {
         mobile: '94701234570',
         product: 'NIRVAAN 5KG (100% PURE COCONUT OIL)',
         quantity: '2',
-        status: 'sent-to-courier',
+        status: 'sended',
         createdAt: '2024-01-04T10:00:00Z'
       },
       {
