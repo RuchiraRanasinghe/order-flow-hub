@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import productAd from "@/assets/product-ad.jpg";
 import { Star, Package, Clock, Shield } from "lucide-react";
+import { createOrder } from "@/services/orderService";
+import { createInquiry } from "@/services/inquiryService";
 
 const testimonials = [
   { name: "නිමල් පෙරේරා", rating: 5, text: "මාස 2ක් භාවිතා කරපු පසු ඉතා හොඳ ප්‍රතිඵල දැක්කා. මිල වටිනවා!" },
@@ -29,60 +31,83 @@ const Order = () => {
     quantity: "1",
   });
   const [inquiry, setInquiry] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Store order data (in real app, this would go to backend)
-    const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-    orders.push({
-      ...formData,
-      id: Date.now().toString(),
-      status: "pending",
-      createdAt: new Date().toISOString(),
-    });
-    localStorage.setItem("orders", JSON.stringify(orders));
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Send order to backend API
+      const result = await createOrder({
+        fullName: formData.fullName,
+        address: formData.address,
+        mobile: formData.mobile,
+        product: formData.product,
+        quantity: parseInt(formData.quantity),
+        status: "received",
+      });
 
-    toast({
-      title: "ඇණවුම සාර්ථකයි!",
-      description: "ඔබගේ ඇණවුම අප වෙත ලැබී ඇත. ඉක්මනින් සම්බන්ධ වෙමු.",
-    });
+      console.log('Order created successfully:', result);
 
-    setFormData({
-      fullName: "",
-      address: "",
-      mobile: "",
-      product: "herbal-cream",
-      quantity: "1",
-    });
+      toast({
+        title: "ඇණවුම සාර්ථකයි!",
+        description: "ඔබගේ ඇණවුම අප වෙත ලැබී ඇත. ඉක්මනින් සම්බන්ධ වෙමු.",
+      });
+
+      setFormData({
+        fullName: "",
+        address: "",
+        mobile: "",
+        product: "herbal-cream",
+        quantity: "1",
+      });
+    } catch (error: any) {
+      console.error('Order submission error:', error);
+      toast({
+        title: "දෝෂයක්",
+        description: error.message || "ඇණවුම සාර්ථක නොවීය. නැවත උත්සාහ කරන්න.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleInquirySubmit = (e: React.FormEvent) => {
+  const handleInquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const inquiries = JSON.parse(localStorage.getItem("inquiries") || "[]");
-    inquiries.push({
-      id: Date.now().toString(),
-      message: inquiry,
-      createdAt: new Date().toISOString(),
-    });
-    localStorage.setItem("inquiries", JSON.stringify(inquiries));
+    try {
+      // Send inquiry to backend API
+      const result = await createInquiry({ message: inquiry });
+      console.log('Inquiry submitted successfully:', result);
 
-    toast({
-      title: "විමසුම ලැබී ඇත",
-      description: "අපි ඉක්මනින් ඔබව සම්බන්ධ කරගන්නෙමු.",
-    });
+      toast({
+        title: "විමසුම ලැබී ඇත",
+        description: "අපි ඉක්මනින් ඔබව සම්බන්ධ කරගන්නෙමු.",
+      });
 
-    setInquiry("");
+      setInquiry("");
+    } catch (error: any) {
+      console.error('Inquiry submission error:', error);
+      toast({
+        title: "දෝෂයක්",
+        description: error.message || "විමසුම යැවීම අසාර්ථක විය. නැවත උත්සාහ කරන්න.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Auto-scroll testimonials
-  useState(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
     }, 5000);
     return () => clearInterval(interval);
-  });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
@@ -218,8 +243,12 @@ const Order = () => {
                     </Select>
                   </div>
 
-                  <Button type="submit" className="w-full rounded-2xl h-12 text-lg font-semibold">
-                    ඇණවුම කරන්න
+                  <Button 
+                    type="submit" 
+                    className="w-full rounded-2xl h-12 text-lg font-semibold"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "ඇණවුම කරමින්..." : "ඇණවුම කරන්න"}
                   </Button>
                 </form>
               </CardContent>

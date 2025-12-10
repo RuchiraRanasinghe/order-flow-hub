@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Eye, CheckCircle } from "lucide-react";
+import { Search, Eye, CheckCircle, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { getCourierOrders, updateCourierStatus } from "@/services/courierService";
+import { InvoiceModal } from "@/components/modals/InvoiceModal";
+import { ExportCourierModal } from "@/components/modals/ExportCourierModal";
 
 interface Order {
   id: string;
@@ -20,6 +22,12 @@ interface Order {
   quantity: string;
   status: string;
   createdAt: string;
+  email?: string;
+  price?: number;
+  deliveryCharge?: number;
+  discount?: number;
+  courierCompany?: string;
+  trackingNumber?: string;
 }
 
 const Courier = () => {
@@ -29,6 +37,9 @@ const Courier = () => {
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const token = localStorage.getItem("adminAuthToken") || "";
 
@@ -92,25 +103,167 @@ const Courier = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-      "sent-to-courier": "secondary",
+    const variants: Record<string, "default" | "secondary" | "outline" | "destructive" | "yellow" | "green"> = {
+      "sended": "green",
       "in-transit": "default",
       "delivered": "outline",
     };
     const labels: Record<string, string> = {
-      "sent-to-courier": "Sent to Courier",
+      "sended": "Updated",
       "in-transit": "In Transit",
       "delivered": "Delivered",
     };
     return <Badge variant={variants[status] || "default"}>{labels[status] || status}</Badge>;
   };
 
+  const downloadOrderDetails = (order: Order) => {
+    // Generate PDF-like content
+    const content = `
+=====================================
+        COURIER ORDER INVOICE
+=====================================
+
+Order Details
+-------------
+Invoice Number: INV-${order.id.slice(0, 8).toUpperCase()}
+Order Number: #${order.id.slice(0, 8).toUpperCase()}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+Status: ${order.status.toUpperCase()}
+
+Customer Information
+--------------------
+Name: ${order.fullName}
+Mobile: ${order.mobile}
+Email: ${order.email || 'N/A'}
+Address: ${order.address}
+
+Courier Details
+---------------
+Company: ${order.courierCompany || 'Express Delivery'}
+Tracking: ${order.trackingNumber || 'TRK-' + order.id.slice(0, 10).toUpperCase()}
+Method: Standard Delivery
+
+Order Items
+-----------
+Product: ${order.product}
+Quantity: ${order.quantity}
+Unit Price: Rs. ${(order.price || 1500).toLocaleString()}
+Subtotal: Rs. ${((order.price || 1500) * parseInt(order.quantity)).toLocaleString()}
+
+Payment Summary
+---------------
+Subtotal: Rs. ${((order.price || 1500) * parseInt(order.quantity)).toLocaleString()}
+Delivery: Rs. ${(order.deliveryCharge || 200).toLocaleString()}
+${order.discount ? `Discount: -Rs. ${order.discount.toLocaleString()}` : ''}
+-------------------------------------
+TOTAL: Rs. ${((order.price || 1500) * parseInt(order.quantity) + (order.deliveryCharge || 200) - (order.discount || 0)).toLocaleString()}
+
+Payment Method: Cash on Delivery (COD)
+
+=====================================
+Thank you for your business!
+=====================================
+    `.trim();
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice-${order.id.slice(0, 8)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Downloaded",
+      description: "Invoice downloaded successfully",
+    });
+  };
+
+  const handleExportSelected = (selectedOrders: Order[]) => {
+    const content = selectedOrders.map((order, index) => `
+=====================================
+    COURIER ORDER ${index + 1} OF ${selectedOrders.length}
+=====================================
+
+Order Number: #${order.id.slice(0, 8).toUpperCase()}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+Status: ${order.status.toUpperCase()}
+
+Customer: ${order.fullName}
+Mobile: ${order.mobile}
+Address: ${order.address}
+
+Product: ${order.product}
+Quantity: ${order.quantity}
+Total: Rs. ${((order.price || 1500) * parseInt(order.quantity) + (order.deliveryCharge || 200) - (order.discount || 0)).toLocaleString()}
+
+Courier: ${order.courierCompany || 'Express Delivery'}
+Tracking: ${order.trackingNumber || 'TRK-' + order.id.slice(0, 10).toUpperCase()}
+    `).join('\n\n');
+
+    const header = `
+=====================================
+   COURIER ORDERS EXPORT REPORT
+=====================================
+Export Date: ${new Date().toLocaleDateString()}
+Total Orders: ${selectedOrders.length}
+=====================================
+
+`;
+
+    const fullContent = header + content;
+
+    const blob = new Blob([fullContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `courier-orders-${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Exported Successfully",
+      description: `${selectedOrders.length} courier order(s) exported as PDF`,
+    });
+  };
+
+  const openExportModal = () => {
+    if (filteredOrders.length === 0) {
+      toast({
+        title: "No Orders",
+        description: "No orders available to export",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsExportModalOpen(true);
+  };
+
+  const openInvoiceModal = (order: Order) => {
+    setSelectedOrder(order);
+    setIsInvoiceModalOpen(true);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-4xl font-bold">Courier Management</h1>
-          <p className="text-muted-foreground mt-2">Track and manage delivery orders</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold">Courier Management</h1>
+            <p className="text-muted-foreground mt-2">Track and manage delivery orders</p>
+          </div>
+          <Button
+            onClick={openExportModal}
+            className="bg-primary hover:bg-primary/90"
+            disabled={filteredOrders.length === 0}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export as PDF
+          </Button>
         </div>
 
         {/* Filters */}
@@ -135,7 +288,7 @@ const Courier = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="sent-to-courier">Sent to Courier</SelectItem>
+                  <SelectItem value="sended">Updated</SelectItem>
                   <SelectItem value="in-transit">In Transit</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
@@ -151,45 +304,57 @@ const Courier = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Mobile</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="py-4 text-left">Customer</TableHead>
+                    <TableHead className="py-4 text-center">Address</TableHead>
+                    <TableHead className="py-4 text-center">Mobile</TableHead>
+                    <TableHead className="py-4 text-center">Product</TableHead>
+                    <TableHead className="py-4 text-center">Quantity</TableHead>
+                    <TableHead className="py-4 text-center">Status</TableHead>
+                    <TableHead className="py-4 text-center">Date</TableHead>
+                    <TableHead className="py-4 text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.fullName}</TableCell>
-                      <TableCell className="max-w-xs truncate">{order.address}</TableCell>
-                      <TableCell>{order.mobile}</TableCell>
-                      <TableCell>{order.product}</TableCell>
-                      <TableCell>{order.quantity}</TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <TableCell className="font-medium py-4">{order.fullName}</TableCell>
+                      <TableCell className="py-4 text-center max-w-xs truncate">{order.address}</TableCell>
+                      <TableCell className="py-4 text-center">{order.mobile}</TableCell>
+                      <TableCell className="py-4 text-center">{order.product}</TableCell>
+                      <TableCell className="py-4 text-center">{order.quantity}</TableCell>
+                      <TableCell className="py-4 text-center">{getStatusBadge(order.status)}</TableCell>
+                      <TableCell className="py-4 text-center">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="py-4">
+                        <div className="flex items-center justify-center gap-3">
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => navigate(`/admin/orders/${order.id}`)}
+                            onClick={() => openInvoiceModal(order)}
+                            className="h-9 w-9"
+                            title="View Invoice"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => downloadOrderDetails(order)}
+                            className="h-9 w-9"
+                            title="Download Order"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
                           {order.status !== "delivered" && (
                             <Button
-                              className="bg-primary hover:bg-primary/90"
+                              className="bg-primary hover:bg-primary/90 h-9 w-9"
                               size="icon"
                               onClick={() =>
                                 handleStatusChange(
                                   order.id,
-                                  order.status === "sent-to-courier" ? "in-transit" : "delivered"
+                                  order.status === "sended" ? "in-transit" : "delivered"
                                 )
                               }
+                              title="Update Status"
                             >
                               <CheckCircle className="w-4 h-4" />
                             </Button>
@@ -209,6 +374,22 @@ const Courier = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Invoice Modal */}
+      <InvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        order={selectedOrder}
+        onDownload={downloadOrderDetails}
+      />
+
+      {/* Export Courier Modal */}
+      <ExportCourierModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        orders={filteredOrders}
+        onExport={handleExportSelected}
+      />
     </AdminLayout>
   );
 };

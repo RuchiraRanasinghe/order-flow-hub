@@ -45,7 +45,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     // Calculate courier orders count
     const updateCourierCount = () => {
       const orders = JSON.parse(localStorage.getItem("orders") || "[]");
-      const count = orders.filter((o: any) => o.status === "sent-to-courier").length;
+      const count = orders.filter((o: any) => o.status === "sended").length;
       setCourierCount(count);
     };
 

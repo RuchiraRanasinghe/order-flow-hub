@@ -57,8 +57,8 @@ const OrderDetails = () => {
     if (!order) return;
     
     try {
-      await updateOrderStatus(order.id, "sent-to-courier", token);
-      setOrder({ ...order, status: "sent-to-courier" });
+      await updateOrderStatus(order.id, "sended", token);
+      setOrder({ ...order, status: "sended" });
       
       toast({
         title: "Sent to Courier",
@@ -100,7 +100,7 @@ const OrderDetails = () => {
   }
 
   const timeline = [
-    { status: "pending", label: "Order Placed", date: order.createdAt },
+    { status: "received", label: "Order Placed", date: order.createdAt },
     {
       status: "received",
       label: "Order Received",
@@ -245,7 +245,7 @@ const OrderDetails = () => {
                   </div>
                 </div>
 
-{order.status !== "sent-to-courier" && order.status !== "in-transit" && order.status !== "delivered" && (
+{order.status !== "sended" && order.status !== "in-transit" && order.status !== "delivered" && (
                   <Button
                     className="w-full rounded-2xl mb-3 bg-primary hover:bg-primary/90"
                     onClick={handleSendToCourier}

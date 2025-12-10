@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Clock, CheckCircle, TrendingUp, Calendar, Truck } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { getOrders } from "@/services/orderService";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
+import { isWithinInterval, startOfDay, endOfDay } from "date-fns";
 
 interface Order {
   id: string;
@@ -19,7 +22,6 @@ interface Order {
 
 interface Stats {
   total: number;
-  pending: number;
   received: number;
   issued: number;
   courier: number;
@@ -31,7 +33,6 @@ const Dashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats>({
     total: 0,
-    pending: 0,
     received: 0,
     issued: 0,
     courier: 0,
@@ -39,6 +40,8 @@ const Dashboard = () => {
     monthly: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -73,10 +76,9 @@ const Dashboard = () => {
 
         const newStats: Stats = {
           total: ordersData.length,
-          pending: ordersData.filter(o => o.status === "pending").length,
           received: ordersData.filter(o => o.status === "received").length,
           issued: ordersData.filter(o => o.status === "issued").length,
-          courier: ordersData.filter(o => o.status === "sent-to-courier" || o.status === "in-transit" || o.status === "delivered").length,
+          courier: ordersData.filter(o => o.status === "sended" || o.status === "in-transit" || o.status === "delivered").length,
           today: ordersData.filter(o => {
             try {
               return new Date(o.createdAt) >= todayStart;
@@ -106,10 +108,32 @@ const Dashboard = () => {
     fetchOrders();
   }, []);
 
+  // Filter orders based on date range
+  useEffect(() => {
+    if (!dateRange?.from || !dateRange?.to) {
+      setFilteredOrders(orders);
+      return;
+    }
+
+    const filtered = orders.filter((order) => {
+      try {
+        const orderDate = new Date(order.createdAt);
+        return isWithinInterval(orderDate, {
+          start: startOfDay(dateRange.from!),
+          end: endOfDay(dateRange.to!),
+        });
+      } catch {
+        return false;
+      }
+    });
+
+    setFilteredOrders(filtered);
+  }, [dateRange, orders]);
+
   const statusData = [
-    { name: "Pending", value: stats.pending },
-    { name: "Received", value: stats.received },
-    { name: "Issued", value: stats.issued },
+    { name: "Total Orders", value: filteredOrders.length },
+    { name: "Received", value: filteredOrders.filter(o => o.status === "received").length },
+    { name: "Issued Orders", value: filteredOrders.filter(o => o.status === "issued").length },
   ];
 
   // Safely generate daily data
@@ -136,11 +160,10 @@ const Dashboard = () => {
   });
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      pending: "secondary",
-      received: "default",
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline" | "yellow" | "green"> = {
+      received: "yellow",
       issued: "outline",
-      "sent-to-courier": "outline",
+      "sended": "green",
       "in-transit": "outline",
       delivered: "outline",
     };
@@ -182,17 +205,17 @@ const Dashboard = () => {
 
           <Card>
             <CardHeader className="flex items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">Received Orders</CardTitle>
               <Clock className="w-5 h-5 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-yellow-500">{stats.pending}</div>
+              <div className="text-3xl font-bold text-yellow-500">{stats.received}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Received Orders</CardTitle>
+              <CardTitle className="text-sm font-medium">Conform Orders</CardTitle>
               <CheckCircle className="w-5 h-5 text-blue-500" />
             </CardHeader>
             <CardContent>
@@ -210,7 +233,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader className="flex items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Courier Orders</CardTitle>
               <Truck className="w-5 h-5 text-purple-500" />
@@ -218,15 +241,15 @@ const Dashboard = () => {
             <CardContent>
               <div className="text-3xl font-bold text-purple-500">{stats.courier}</div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           <Card>
             <CardHeader className="flex items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Today's Orders</CardTitle>
-              <Calendar className="w-5 h-5 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium  ">Today's Orders</CardTitle>
+              <Calendar className="w-5 h-5 text-muted-foreground text-purple-500 " />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{stats.today}</div>
+              <div className="text-3xl font-bold text-purple-500">{stats.today}</div>
             </CardContent>
           </Card>
 
@@ -244,15 +267,20 @@ const Dashboard = () => {
         {/* Charts */}
         <div className="grid lg:grid-cols-2 gap-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="space-y-4">
               <CardTitle>Orders by Status</CardTitle>
+              <DateRangePicker
+                date={dateRange}
+                onDateChange={setDateRange}
+                className="w-full"
+              />
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={statusData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
-                  <YAxis />
+                  <YAxis domain={[0, 100]} ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]} />
                   <Tooltip />
                   <Bar dataKey="value" fill="#8884d8" />
                 </BarChart>
@@ -261,15 +289,16 @@ const Dashboard = () => {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="space-y-4">
               <CardTitle>Orders (Last 7 Days)</CardTitle>
+              <div className="h-10" />
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={dailyData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
-                  <YAxis />
+                  <YAxis domain={[0, 100]} ticks={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]} />
                   <Tooltip />
                   <Line type="monotone" dataKey="orders" stroke="#8884d8" strokeWidth={2} />
                 </LineChart>
