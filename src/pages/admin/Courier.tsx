@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { getCourierOrders, updateCourierStatus } from "@/services/courierService";
 import { InvoiceModal } from "@/components/modals/InvoiceModal";
+import { ExportCourierModal } from "@/components/modals/ExportCourierModal";
 
 interface Order {
   id: string;
@@ -38,6 +39,7 @@ const Courier = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const token = localStorage.getItem("adminAuthToken") || "";
 
@@ -115,24 +117,59 @@ const Courier = () => {
   };
 
   const downloadOrderDetails = (order: Order) => {
+    // Generate PDF-like content
     const content = `
+=====================================
+        COURIER ORDER INVOICE
+=====================================
+
 Order Details
-=============
-Customer: ${order.fullName}
-Address: ${order.address}
+-------------
+Invoice Number: INV-${order.id.slice(0, 8).toUpperCase()}
+Order Number: #${order.id.slice(0, 8).toUpperCase()}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+Status: ${order.status.toUpperCase()}
+
+Customer Information
+--------------------
+Name: ${order.fullName}
 Mobile: ${order.mobile}
+Email: ${order.email || 'N/A'}
+Address: ${order.address}
+
+Courier Details
+---------------
+Company: ${order.courierCompany || 'Express Delivery'}
+Tracking: ${order.trackingNumber || 'TRK-' + order.id.slice(0, 10).toUpperCase()}
+Method: Standard Delivery
+
+Order Items
+-----------
 Product: ${order.product}
 Quantity: ${order.quantity}
-Status: ${order.status}
-Date: ${new Date(order.createdAt).toLocaleDateString()}
-Order ID: ${order.id}
+Unit Price: Rs. ${(order.price || 1500).toLocaleString()}
+Subtotal: Rs. ${((order.price || 1500) * parseInt(order.quantity)).toLocaleString()}
+
+Payment Summary
+---------------
+Subtotal: Rs. ${((order.price || 1500) * parseInt(order.quantity)).toLocaleString()}
+Delivery: Rs. ${(order.deliveryCharge || 200).toLocaleString()}
+${order.discount ? `Discount: -Rs. ${order.discount.toLocaleString()}` : ''}
+-------------------------------------
+TOTAL: Rs. ${((order.price || 1500) * parseInt(order.quantity) + (order.deliveryCharge || 200) - (order.discount || 0)).toLocaleString()}
+
+Payment Method: Cash on Delivery (COD)
+
+=====================================
+Thank you for your business!
+=====================================
     `.trim();
 
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `order-${order.id}.txt`;
+    a.download = `invoice-${order.id.slice(0, 8)}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -140,38 +177,70 @@ Order ID: ${order.id}
 
     toast({
       title: "Downloaded",
-      description: "Order details downloaded successfully",
+      description: "Invoice downloaded successfully",
     });
   };
 
-  const downloadAllOrders = () => {
-    const content = filteredOrders.map((order, index) => `
-Order ${index + 1}
-=============
+  const handleExportSelected = (selectedOrders: Order[]) => {
+    const content = selectedOrders.map((order, index) => `
+=====================================
+    COURIER ORDER ${index + 1} OF ${selectedOrders.length}
+=====================================
+
+Order Number: #${order.id.slice(0, 8).toUpperCase()}
+Date: ${new Date(order.createdAt).toLocaleDateString()}
+Status: ${order.status.toUpperCase()}
+
 Customer: ${order.fullName}
-Address: ${order.address}
 Mobile: ${order.mobile}
+Address: ${order.address}
+
 Product: ${order.product}
 Quantity: ${order.quantity}
-Status: ${order.status}
-Date: ${new Date(order.createdAt).toLocaleDateString()}
-Order ID: ${order.id}
+Total: Rs. ${((order.price || 1500) * parseInt(order.quantity) + (order.deliveryCharge || 200) - (order.discount || 0)).toLocaleString()}
+
+Courier: ${order.courierCompany || 'Express Delivery'}
+Tracking: ${order.trackingNumber || 'TRK-' + order.id.slice(0, 10).toUpperCase()}
     `).join('\n\n');
 
-    const blob = new Blob([content], { type: 'text/plain' });
+    const header = `
+=====================================
+   COURIER ORDERS EXPORT REPORT
+=====================================
+Export Date: ${new Date().toLocaleDateString()}
+Total Orders: ${selectedOrders.length}
+=====================================
+
+`;
+
+    const fullContent = header + content;
+
+    const blob = new Blob([fullContent], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `courier-orders-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `courier-orders-${new Date().toISOString().split('T')[0]}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 
     toast({
-      title: "Downloaded",
-      description: `${filteredOrders.length} courier orders downloaded successfully`,
+      title: "Exported Successfully",
+      description: `${selectedOrders.length} courier order(s) exported as PDF`,
     });
+  };
+
+  const openExportModal = () => {
+    if (filteredOrders.length === 0) {
+      toast({
+        title: "No Orders",
+        description: "No orders available to export",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsExportModalOpen(true);
   };
 
   const openInvoiceModal = (order: Order) => {
@@ -188,12 +257,12 @@ Order ID: ${order.id}
             <p className="text-muted-foreground mt-2">Track and manage delivery orders</p>
           </div>
           <Button
-            onClick={downloadAllOrders}
+            onClick={openExportModal}
             className="bg-primary hover:bg-primary/90"
             disabled={filteredOrders.length === 0}
           >
             <Download className="w-4 h-4 mr-2" />
-            Download All
+            Export as PDF
           </Button>
         </div>
 
@@ -312,6 +381,14 @@ Order ID: ${order.id}
         onClose={() => setIsInvoiceModalOpen(false)}
         order={selectedOrder}
         onDownload={downloadOrderDetails}
+      />
+
+      {/* Export Courier Modal */}
+      <ExportCourierModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        orders={filteredOrders}
+        onExport={handleExportSelected}
       />
     </AdminLayout>
   );
