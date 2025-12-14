@@ -8,6 +8,7 @@ interface PaginationProps {
 	onLimitChange?: (limit: number) => void;
 	limits?: number[];
 	fixed?: boolean; // sticky bottom layout when true
+	className?: string;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
@@ -18,6 +19,7 @@ const Pagination: React.FC<PaginationProps> = ({
 	onLimitChange,
 	limits = [5, 10, 15, 20],
 	fixed = false,
+	className,
 }) => {
 	const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -72,11 +74,8 @@ const Pagination: React.FC<PaginationProps> = ({
 	const start = total === 0 ? 0 : (page - 1) * limit + 1;
 	const end = Math.min(total, page * limit);
 
-	// Single layout mode: embedded full-width pagination bar (Orders mode)
-
-	// Embedded full-width pagination bar (inline in page content)
 	return (
-		<div className="w-full flex items-center justify-between mt-32" aria-label="Pagination Navigation">
+		<div className={`w-full flex items-center justify-between ${className ?? 'mt-4'}`} aria-label="Pagination Navigation">
 			<div className="text-sm text-muted-foreground">
 				{total === 0 ? `Showing 0 of 0 results` : `Showing ${start}–${end} of ${total} results`}
 			</div>

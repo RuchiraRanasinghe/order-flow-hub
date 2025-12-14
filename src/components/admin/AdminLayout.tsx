@@ -98,7 +98,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   );
 
   return (
-    <div className="min-h-screen bg-background flex w-full">
+  <div className="min-h-screen bg-background flex w-full overflow-x-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-64 fixed h-screen">
         <Sidebar />
