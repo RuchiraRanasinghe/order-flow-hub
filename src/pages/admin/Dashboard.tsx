@@ -340,7 +340,7 @@ const Dashboard = () => {
                     onPageChange={(p) => setRecentPage(p)}
                     onLimitChange={(l) => { setRecentLimit(l); setRecentPage(1); }}
                     limits={[5,10,15,20]}
-                    fixed={true}
+                    fixed={false}
                   />
                 </>
               ) : (

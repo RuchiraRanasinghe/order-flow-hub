@@ -343,7 +343,7 @@ const Orders = () => {
           onPageChange={(p) => setPage(p)}
           onLimitChange={(l) => { setLimit(l); setPage(1); }}
           limits={[5,10,15,20]}
-          fixed={true}
+          fixed={false} // embedded, right-aligned pagination
         />
       </div>
       <ConfirmModal
