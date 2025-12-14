@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getOrders, updateOrderStatus, deleteOrder } from "@/services/orderService";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "@/components/modals/ConfirmModal";
+import Pagination from '@/components/ui/paginations';
 
 interface Order {
   id: string;
@@ -47,6 +48,9 @@ const Orders = () => {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -58,25 +62,34 @@ const Orders = () => {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const response = await getOrders();
+      const response = await getOrders({ page, limit, status: statusFilter !== 'all' ? statusFilter : undefined, search: searchTerm || undefined });
       console.log("Orders API response:", response);
-      
-      // Extract orders array from response
-      let ordersData: Order[] = [];
-      
-      if (Array.isArray(response)) {
-        // If response is already an array
-        ordersData = response;
+
+      // Response may be { orders, total, page, limit } or array
+      if (response && response.data === undefined && Array.isArray(response)) {
+        // request() sometimes unwraps and returns array directly
+        setOrders(response);
+        setTotal(response.length || 0);
+      } else if (response && Array.isArray(response)) {
+        setOrders(response);
+        setTotal(response.length || 0);
+      } else if (response && response.orders) {
+        setOrders(response.orders);
+        setTotal(response.total || 0);
       } else if (response && Array.isArray(response.data)) {
-        // If response has data property with array
-        ordersData = response.data;
-      } else if (response && Array.isArray(response.orders)) {
-        // If response has orders property with array
-        ordersData = response.orders;
+        setOrders(response.data);
+        setTotal(response.count || response.data.length || 0);
+      } else if (response && response.data) {
+        // when request() unwraps and returns response.data
+        // data may be orders array or paginated object
+        if (Array.isArray(response.data)) {
+          setOrders(response.data);
+          setTotal(response.count || response.data.length || 0);
+        } else if (response.data.orders) {
+          setOrders(response.data.orders);
+          setTotal(response.data.total || 0);
+        }
       }
-      
-      console.log("Processed orders data:", ordersData);
-      setOrders(ordersData);
       
     } catch (error: any) {
       console.error("Error loading orders:", error);
@@ -92,31 +105,26 @@ const Orders = () => {
   };
 
   useEffect(() => {
+    // Reset to first page when component mounts
+    setPage(1);
     loadOrders();
   }, []);
 
+  // Reload when page/limit/search/status changes
+  useEffect(() => {
+    loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, statusFilter, searchTerm]);
+
+  // Reset to first page when search or status filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter]);
+
   // Filter orders based on search & status
   useEffect(() => {
-    if (!Array.isArray(orders)) {
-      setFilteredOrders([]);
-      return;
-    }
-
-    let filtered = [...orders];
-
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((order) => order.status === statusFilter);
-    }
-
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (order) =>
-          order.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (order.mobile && order.mobile.includes(searchTerm))
-      );
-    }
-
-    setFilteredOrders(filtered);
+    // When using server-side pagination & filters, orders already reflect search/status
+    setFilteredOrders(Array.isArray(orders) ? orders : []);
   }, [orders, searchTerm, statusFilter]);
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
@@ -156,7 +164,8 @@ const Orders = () => {
     setDeleting(true);
     try {
       await deleteOrder(orderToDelete);
-      setOrders((prev) => prev.filter((o) => o.id !== orderToDelete));
+      // Reload current page after deletion to keep pagination accurate
+      await loadOrders();
       toast({
         title: 'Order Deleted',
         description: 'The order was deleted successfully.'
@@ -202,7 +211,7 @@ const Orders = () => {
 
   return (
     <AdminLayout>
-  <div className="space-y-6">
+  <div className="space-y-6 pb-28"> {/* add bottom padding to prevent overlap with fixed pagination */}
         <div>
           <h1 className="text-4xl font-bold">Orders Management</h1>
           <p className="text-muted-foreground mt-2">
@@ -327,6 +336,15 @@ const Orders = () => {
             </div>
           </CardContent>
         </Card>
+        <Pagination
+          total={total}
+          page={page}
+          limit={limit}
+          onPageChange={(p) => setPage(p)}
+          onLimitChange={(l) => { setLimit(l); setPage(1); }}
+          limits={[5,10,15,20]}
+          fixed={true}
+        />
       </div>
       <ConfirmModal
         isOpen={confirmOpen}

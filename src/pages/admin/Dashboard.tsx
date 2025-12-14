@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Clock, CheckCircle, TrendingUp, Calendar, Truck } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { getOrders } from "@/services/orderService";
+import Pagination from '@/components/ui/paginations';
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { isWithinInterval, startOfDay, endOfDay } from "date-fns";
@@ -42,6 +43,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [recentPage, setRecentPage] = useState(1);
+  const [recentLimit, setRecentLimit] = useState(5);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -185,7 +188,7 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 pb-28">
         <div>
           <h1 className="text-4xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground mt-2">Welcome back! Here's your overview.</p>
@@ -315,18 +318,31 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {Array.isArray(orders) && orders.length > 0 ? (
-                orders.slice(-5).reverse().map(order => (
-                  <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                    <div className="flex-1">
-                      <p className="font-semibold">{order.fullName}</p>
-                      <p className="text-sm text-muted-foreground">{order.mobile}</p>
+                <>
+                  {orders.slice().reverse().slice((recentPage - 1) * recentLimit, recentPage * recentLimit).map(order => (
+                    <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                      <div className="flex-1">
+                        <p className="font-semibold">{order.fullName}</p>
+                        <p className="text-sm text-muted-foreground">{order.mobile}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium">Qty: {order.quantity}</p>
+                      </div>
+                      <div>{getStatusBadge(order.status)}</div>
                     </div>
-                    <div className="text-center">
-                      <p className="text-sm font-medium">Qty: {order.quantity}</p>
-                    </div>
-                    <div>{getStatusBadge(order.status)}</div>
-                  </div>
-                ))
+                  ))}
+
+                  {/* If there are orders, render pagination for recent orders */}
+                  <Pagination
+                    total={orders.length}
+                    page={recentPage}
+                    limit={recentLimit}
+                    onPageChange={(p) => setRecentPage(p)}
+                    onLimitChange={(l) => { setRecentLimit(l); setRecentPage(1); }}
+                    limits={[5,10,15,20]}
+                    fixed={true}
+                  />
+                </>
               ) : (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">No orders found</p>

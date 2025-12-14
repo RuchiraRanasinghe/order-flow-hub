@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getCourierOrders, updateCourierStatus } from "@/services/courierService";
 import { InvoiceModal } from "@/components/modals/InvoiceModal";
 import { ExportCourierModal } from "@/components/modals/ExportCourierModal";
+import Pagination from '@/components/ui/paginations';
 
 interface Order {
   id: string;
@@ -35,6 +36,9 @@ const Courier = () => {
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(5);
+  const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -46,10 +50,21 @@ const Courier = () => {
   // Load courier orders from API
   const loadOrders = async () => {
     try {
-      const data = await getCourierOrders(token);
-      // Ensure data is an array
-      const ordersArray = Array.isArray(data) ? data : [];
-      setOrders(ordersArray);
+      const response = await getCourierOrders({ page, limit, status: statusFilter !== 'all' ? statusFilter : undefined, search: searchTerm || undefined }, token);
+
+      if (response && response.data && response.data.orders) {
+        setOrders(response.data.orders as Order[]);
+        setTotal(response.data.total || 0);
+      } else if (Array.isArray(response)) {
+        setOrders(response);
+        setTotal(response.length);
+      } else if (response && response.orders) {
+        setOrders(response.orders);
+        setTotal(response.total || 0);
+      } else {
+        setOrders([]);
+        setTotal(0);
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -63,6 +78,11 @@ const Courier = () => {
   useEffect(() => {
     loadOrders();
   }, []);
+
+  useEffect(() => {
+    loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, statusFilter, searchTerm]);
 
   // Filter and search
   useEffect(() => {
@@ -250,7 +270,7 @@ Total Orders: ${selectedOrders.length}
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 pb-28">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold">Courier Management</h1>
@@ -373,6 +393,16 @@ Total Orders: ${selectedOrders.length}
             </div>
           </CardContent>
         </Card>
+        {/* Pagination for courier orders */}
+        <Pagination
+          total={total}
+          page={page}
+          limit={limit}
+          onPageChange={(p) => setPage(p)}
+          onLimitChange={(l) => { setLimit(l); setPage(1); }}
+          limits={[5,10,15,20]}
+          fixed={true}
+        />
       </div>
 
       {/* Invoice Modal */}
