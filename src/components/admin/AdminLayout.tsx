@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/NavLink";
@@ -16,13 +16,13 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import logo from "@/assets/logo.png";
 
-import { useState } from "react";
+// import { useState } from "react";
 
 interface AdminLayoutProps {
   children: ReactNode;
 }
 
-const menuItems = [
+const adminMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
   { icon: ShoppingCart, label: "Orders", path: "/admin/orders" },
   { icon: Truck, label: "Courier", path: "/admin/courier", showBadge: true },
@@ -30,35 +30,63 @@ const menuItems = [
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics" },
   { icon: Settings, label: "Settings", path: "/admin/settings" },
 ];
+const courierMenuItems = [
+  { icon: Truck, label: "Courier", path: "/admin/courier", showBadge: false },
+];
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [courierCount, setCourierCount] = useState(0);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    const isAuth = localStorage.getItem("adminAuth");
-    if (!isAuth) {
-      navigate("/admin/login");
+    // Check for JWT tokens
+    const adminToken = localStorage.getItem("adminAuthToken");
+    const courierToken = localStorage.getItem("courierAuthToken");
+    let userRole = null;
+    if (adminToken) {
+      userRole = "admin";
+    } else if (courierToken) {
+      userRole = "courier";
+    }
+    setRole(userRole);
+
+    // Route protection
+    if (!userRole) {
+      // Not logged in
+      if (location.pathname.startsWith("/admin/courier")) {
+        navigate("/admin/courier-login");
+      } else {
+        navigate("/admin/login");
+      }
+    } else if (userRole === "courier") {
+      // Courier can only access /admin/courier
+      if (!location.pathname.startsWith("/admin/courier")) {
+        navigate("/admin/courier");
+      }
     }
 
-    // Calculate courier orders count
+    // Calculate courier orders count (for admin only)
     const updateCourierCount = () => {
       const orders = JSON.parse(localStorage.getItem("orders") || "[]");
       const count = orders.filter((o: any) => o.status === "sended").length;
       setCourierCount(count);
     };
-
-    updateCourierCount();
-    
-    // Listen for storage changes
+    if (userRole === "admin") updateCourierCount();
     window.addEventListener("storage", updateCourierCount);
     return () => window.removeEventListener("storage", updateCourierCount);
   }, [navigate, location]);
 
   const handleLogout = () => {
-    localStorage.removeItem("adminAuth");
-    navigate("/admin/login");
+    localStorage.removeItem("adminAuthToken");
+    localStorage.removeItem("courierAuthToken");
+    setRole(null);
+    if (role === "courier") {
+      navigate("/admin/courier-login");
+    } else {
+      navigate("/admin/login");
+    }
   };
 
   const Sidebar = () => (
@@ -66,9 +94,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       <div className="p-6 border-b">
         <img src={logo} alt="Logo" className="h-16 w-auto mx-auto" />
       </div>
-      
       <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item) => (
+        {(role === "admin" ? adminMenuItems : courierMenuItems).map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
@@ -83,7 +110,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           </NavLink>
         ))}
       </nav>
-
       <div className="p-4 border-t">
         <Button
           variant="outline"

@@ -12,3 +12,4 @@ export const loginUser = async (data: { email: string; password: string }) => {
 export const getProfile = async (token: string) => {
   return request('auth/profile', { method: 'GET', token });
 };
+

@@ -30,6 +30,10 @@ import { useToast } from "@/hooks/use-toast";
 import { getOrders, updateOrderStatus, deleteOrder } from "@/services/orderService";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "@/components/modals/ConfirmModal";
+
+
+
+
 import Pagination from '@/components/ui/paginations';
 
 interface Order {
@@ -267,63 +271,72 @@ const Orders = () => {
                 </TableHeader>
                 <TableBody>
                   {Array.isArray(filteredOrders) && filteredOrders.length > 0 ? (
-                    filteredOrders.map((order) => (
-                      <TableRow key={order.id}>
-                        <TableCell className="font-medium py-4">{order.fullName}</TableCell>
-                        <TableCell className="py-4 text-center">{order.mobile || 'N/A'}</TableCell>
-                        <TableCell className="py-4 text-center">{order.product || 'N/A'}</TableCell>
-                        <TableCell className="py-4 text-center">{order.quantity || 0}</TableCell>
-                        <TableCell className="py-4 text-center">{getStatusBadge(order.status || 'received')}</TableCell>
-                        <TableCell className="py-4 text-center">
-                          {order.createdAt ? 
-                            new Date(order.createdAt).toLocaleDateString() : 
-                            'N/A'}
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <div className="flex items-center justify-center gap-3">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => navigate(`/admin/orders/${order.id}`)}
-                              className="h-9 w-9"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            {order.status === "sended" || 
-                             order.status === "in-transit" || 
-                             order.status === "delivered" ? (
+                    <>
+                      {filteredOrders.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium py-4">{order.fullName}</TableCell>
+                          <TableCell className="py-4 text-center">{order.mobile || 'N/A'}</TableCell>
+                          <TableCell className="py-4 text-center">{order.product || 'N/A'}</TableCell>
+                          <TableCell className="py-4 text-center">{order.quantity || 0}</TableCell>
+                          <TableCell className="py-4 text-center">{getStatusBadge(order.status || 'received')}</TableCell>
+                          <TableCell className="py-4 text-center">
+                            {order.createdAt ? 
+                              new Date(order.createdAt).toLocaleDateString() : 
+                              'N/A'}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <div className="flex items-center justify-center gap-3">
                               <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => handleUnsendOrder(order.id)}
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-300 h-9 w-9"
-                                title="Unsend Order"
+                                onClick={() => navigate(`/admin/orders/${order.id}`)}
+                                className="h-9 w-9"
                               >
-                                <Undo2 className="w-4 h-4" />
+                                <Eye className="w-4 h-4" />
                               </Button>
-                            ) : (
+                              {order.status === "sended" || 
+                               order.status === "in-transit" || 
+                               order.status === "delivered" ? (
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleUnsendOrder(order.id)}
+                                  className="bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-300 h-9 w-9"
+                                  title="Unsend Order"
+                                >
+                                  <Undo2 className="w-4 h-4" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleSendToCourier(order.id)}
+                                  className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 h-9 w-9"
+                                  title="Send to Courier"
+                                >
+                                  <Send className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button
-                                variant="outline"
+                                variant="destructive"
                                 size="icon"
-                                onClick={() => handleSendToCourier(order.id)}
-                                className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300 h-9 w-9"
-                                title="Send to Courier"
+                                onClick={() => handleDelete(order.id)}
+                                className="h-9 w-9"
                               >
-                                <Send className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4" />
                               </Button>
-                            )}
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              onClick={() => handleDelete(order.id)}
-                              className="h-9 w-9"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {/* Pad with empty rows to always show 6 rows */}
+                      {filteredOrders.length < 5 && Array.from({ length: 6 - filteredOrders.length }).map((_, idx) => (
+                        <TableRow key={`empty-row-${idx}`}>
+                          <TableCell className="py-4">&nbsp;</TableCell>
+                          <TableCell className="py-4" colSpan={6}></TableCell>
+                        </TableRow>
+                      ))}
+                    </>
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">

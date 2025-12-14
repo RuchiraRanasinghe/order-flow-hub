@@ -5,32 +5,36 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
+import { loginUser } from "@/services/authService";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
-    fullName: "",
+    email: "",
     password: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Simple authentication (in real app, this would be server-side)
-    if (formData.fullName && formData.password) {
-      localStorage.setItem("adminAuth", "true");
-      toast({
-        title: "Login Successful",
-        description: "Welcome to admin dashboard",
-      });
-      navigate("/admin/dashboard");
-    } else {
-      toast({
-        title: "Login Failed",
-        description: "Invalid credentials",
-        variant: "destructive",
-      });
+    setLoading(true);
+    try {
+      // Trim email and password before sending
+      const email = formData.email.trim();
+      const password = formData.password.trim();
+      const res = await loginUser({ email, password });
+      if (res && res.token && res.user && res.user.role === "admin") {
+        localStorage.setItem("adminAuthToken", res.token);
+        toast({ title: "Login Successful", description: "Welcome to admin dashboard" });
+        navigate("/admin/dashboard");
+      } else {
+        toast({ title: "Login Failed", description: "Invalid credentials or not an admin", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Login Failed", description: err.message || "Invalid credentials", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,12 +59,13 @@ const AdminLogin = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Full Name</label>
+              <label className="block text-sm font-medium mb-2">Email</label>
               <Input
                 required
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                placeholder="Enter your name"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="Enter your email"
                 className="rounded-2xl"
               />
             </div>
@@ -77,8 +82,8 @@ const AdminLogin = () => {
               />
             </div>
 
-            <Button type="submit" className="w-full rounded-2xl h-12 text-lg font-semibold">
-              Login
+            <Button type="submit" className="w-full rounded-2xl h-12 text-lg font-semibold" disabled={loading}>
+              {loading ? "Logging in..." : "Login"}
             </Button>
           </form>
         </CardContent>

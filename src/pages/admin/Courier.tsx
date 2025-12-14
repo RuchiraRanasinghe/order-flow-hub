@@ -383,6 +383,13 @@ Total Orders: ${selectedOrders.length}
                       </TableCell>
                     </TableRow>
                   ))}
+                  {/* Pad with empty rows to always show 6 rows */}
+                  {filteredOrders.length < 5 && Array.from({ length: 6 - filteredOrders.length }).map((_, idx) => (
+                    <TableRow key={`empty-row-${idx}`}>
+                      <TableCell className="py-4">&nbsp;</TableCell>
+                      <TableCell className="py-4" colSpan={7}></TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
               {filteredOrders.length === 0 && (
