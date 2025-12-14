@@ -55,7 +55,7 @@ const Order = () => {
 
       toast({
         title: "ඇණවුම සාර්ථකයි!",
-        description: "ඔබගේ ඇණවුම අප වෙත ලැබී ඇත. ඉක්මනින් සම්බන්ධ වෙමු.",
+        description: `ඔබගේ ඇණවුම් අංකය: ${result.order_id || result.orderId || ''}` || "ඔබගේ ඇණවුම අප වෙත ලැබී ඇත. ඉක්මනින් සම්බන්ධ වෙමු.",
       });
 
       setFormData({

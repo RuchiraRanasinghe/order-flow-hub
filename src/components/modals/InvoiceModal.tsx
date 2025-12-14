@@ -63,14 +63,14 @@ export const InvoiceModal = ({ isOpen, onClose, order, onDownload }: InvoiceModa
             <div className="grid grid-cols-2 gap-6 pb-6 border-b border-green-100">
               <div>
                 <h3 className="text-sm font-semibold text-green-700 mb-3">INVOICE DETAILS</h3>
-                <div className="space-y-2 text-sm">
+                  <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Invoice Number:</span>
-                    <span className="font-semibold">INV-{order.id.slice(0, 8)}</span>
+                    <span className="font-semibold">INV-{String(order.id).slice(0, 8)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Order Number:</span>
-                    <span className="font-semibold">#{order.id.slice(0, 8)}</span>
+                    <span className="font-semibold">#{String(order.id).slice(0, 8)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Invoice Date:</span>
@@ -137,7 +137,7 @@ export const InvoiceModal = ({ isOpen, onClose, order, onDownload }: InvoiceModa
                   </div>
                   <div>
                     <p className="text-gray-500 text-xs">Tracking Number</p>
-                    <p className="font-semibold text-gray-900">{order.trackingNumber || 'TRK-' + order.id.slice(0, 10)}</p>
+                    <p className="font-semibold text-gray-900">{order.trackingNumber || 'TRK-' + String(order.id).slice(0, 10)}</p>
                   </div>
                   <div>
                     <p className="text-gray-500 text-xs">Delivery Method</p>
@@ -176,7 +176,7 @@ export const InvoiceModal = ({ isOpen, onClose, order, onDownload }: InvoiceModa
                           </div>
                           <div>
                             <p className="font-semibold text-sm text-gray-900">{order.product}</p>
-                            <p className="text-xs text-gray-500">SKU: PRD-{order.id.slice(0, 6)}</p>
+                            <p className="text-xs text-gray-500">SKU: PRD-{String(order.id).slice(0, 6)}</p>
                           </div>
                         </div>
                       </td>

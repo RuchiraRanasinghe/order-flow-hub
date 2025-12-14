@@ -27,8 +27,9 @@ import {
 } from "@/components/ui/table";
 import { Search, ArrowRight, Eye, Trash2, Send, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getOrders, updateOrderStatus } from "@/services/orderService";
+import { getOrders, updateOrderStatus, deleteOrder } from "@/services/orderService";
 import { useNavigate } from "react-router-dom";
+import ConfirmModal from "@/components/modals/ConfirmModal";
 
 interface Order {
   id: string;
@@ -49,6 +50,9 @@ const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Load orders from API
   const loadOrders = async () => {
@@ -143,11 +147,32 @@ const Orders = () => {
     handleStatusChange(orderId, "received");
 
   const handleDelete = (orderId: string) => {
-    toast({
-      title: "Action Not Allowed",
-      description: "Deleting orders is disabled in production.",
-      variant: "destructive",
-    });
+    setOrderToDelete(orderId);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!orderToDelete) return;
+    setDeleting(true);
+    try {
+      await deleteOrder(orderToDelete);
+      setOrders((prev) => prev.filter((o) => o.id !== orderToDelete));
+      toast({
+        title: 'Order Deleted',
+        description: 'The order was deleted successfully.'
+      });
+    } catch (error: any) {
+      console.error('Delete order error:', error);
+      toast({
+        title: 'Error',
+        description: error?.message || 'Failed to delete order',
+        variant: 'destructive'
+      });
+    } finally {
+      setDeleting(false);
+      setConfirmOpen(false);
+      setOrderToDelete(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -177,7 +202,7 @@ const Orders = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+  <div className="space-y-6">
         <div>
           <h1 className="text-4xl font-bold">Orders Management</h1>
           <p className="text-muted-foreground mt-2">
@@ -303,6 +328,16 @@ const Orders = () => {
           </CardContent>
         </Card>
       </div>
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => { setConfirmOpen(false); setOrderToDelete(null); }}
+        onConfirm={confirmDelete}
+        title="Delete Order"
+        description="Are you sure you want to delete this order? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        loading={deleting}
+      />
     </AdminLayout>
   );
 };

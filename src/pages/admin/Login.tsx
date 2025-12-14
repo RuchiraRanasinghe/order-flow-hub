@@ -35,8 +35,19 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center p-4">
+      {/* Top-left back button */}
+      <Button
+        type="button"
+        onClick={() => navigate('/')}
+        className="absolute top-10 right-20 z-40 text-sm rounded-md"
+        aria-label="Back to landing page"
+      >
+        ← Back to landing
+      </Button>
+
       <Card className="w-full max-w-md shadow-2xl">
+       
         <CardHeader className="text-center">
           <img src={logo} alt="Logo" className="h-24 w-auto mx-auto mb-4" />
           <CardTitle className="text-3xl font-bold">Admin Login</CardTitle>

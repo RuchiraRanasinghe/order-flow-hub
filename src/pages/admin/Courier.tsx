@@ -118,15 +118,15 @@ const Courier = () => {
 
   const downloadOrderDetails = (order: Order) => {
     // Generate PDF-like content
-    const content = `
+  const content = `
 =====================================
         COURIER ORDER INVOICE
 =====================================
 
 Order Details
 -------------
-Invoice Number: INV-${order.id.slice(0, 8).toUpperCase()}
-Order Number: #${order.id.slice(0, 8).toUpperCase()}
+Invoice Number: INV-${String(order.id).slice(0, 8).toUpperCase()}
+Order Number: #${String(order.id).slice(0, 8).toUpperCase()}
 Date: ${new Date(order.createdAt).toLocaleDateString()}
 Status: ${order.status.toUpperCase()}
 
@@ -140,7 +140,7 @@ Address: ${order.address}
 Courier Details
 ---------------
 Company: ${order.courierCompany || 'Express Delivery'}
-Tracking: ${order.trackingNumber || 'TRK-' + order.id.slice(0, 10).toUpperCase()}
+Tracking: ${order.trackingNumber || 'TRK-' + String(order.id).slice(0, 10).toUpperCase()}
 Method: Standard Delivery
 
 Order Items
@@ -169,7 +169,7 @@ Thank you for your business!
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `invoice-${order.id.slice(0, 8)}.pdf`;
+  a.download = `invoice-${String(order.id).slice(0, 8)}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -182,12 +182,12 @@ Thank you for your business!
   };
 
   const handleExportSelected = (selectedOrders: Order[]) => {
-    const content = selectedOrders.map((order, index) => `
+  const content = selectedOrders.map((order, index) => `
 =====================================
     COURIER ORDER ${index + 1} OF ${selectedOrders.length}
 =====================================
 
-Order Number: #${order.id.slice(0, 8).toUpperCase()}
+Order Number: #${String(order.id).slice(0, 8).toUpperCase()}
 Date: ${new Date(order.createdAt).toLocaleDateString()}
 Status: ${order.status.toUpperCase()}
 
@@ -200,7 +200,7 @@ Quantity: ${order.quantity}
 Total: Rs. ${((order.price || 1500) * parseInt(order.quantity) + (order.deliveryCharge || 200) - (order.discount || 0)).toLocaleString()}
 
 Courier: ${order.courierCompany || 'Express Delivery'}
-Tracking: ${order.trackingNumber || 'TRK-' + order.id.slice(0, 10).toUpperCase()}
+Tracking: ${order.trackingNumber || 'TRK-' + String(order.id).slice(0, 10).toUpperCase()}
     `).join('\n\n');
 
     const header = `

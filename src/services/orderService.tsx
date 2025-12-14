@@ -16,3 +16,7 @@ export const createOrder = async (data: any) => {
 export const updateOrderStatus = async (id: string, status: string, token?: string) => {
   return request(`orders/${id}/status`, { method: 'PUT', body: { status }, token });
 };
+
+export const deleteOrder = async (id: string, token?: string) => {
+  return request(`orders/${id}`, { method: 'DELETE', token });
+};

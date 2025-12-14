@@ -30,13 +30,13 @@ interface ExportCourierModalProps {
 }
 
 export const ExportCourierModal = ({ isOpen, onClose, orders, onExport }: ExportCourierModalProps) => {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(orders.map(o => o.id)));
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(orders.map(o => String(o.id))));
   const [selectAll, setSelectAll] = useState(true);
 
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     if (checked) {
-      setSelectedIds(new Set(orders.map(o => o.id)));
+      setSelectedIds(new Set(orders.map(o => String(o.id))));
     } else {
       setSelectedIds(new Set());
     }
@@ -91,26 +91,26 @@ export const ExportCourierModal = ({ isOpen, onClose, orders, onExport }: Export
                 <div
                   key={order.id}
                   className={`flex items-start space-x-3 p-4 rounded-lg border-2 transition-colors ${
-                    selectedIds.has(order.id)
+                    selectedIds.has(String(order.id))
                       ? "bg-green-50 border-green-300"
                       : "bg-white border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <Checkbox
-                    id={`order-${order.id}`}
-                    checked={selectedIds.has(order.id)}
-                    onCheckedChange={(checked) => handleSelectOrder(order.id, checked as boolean)}
+                    id={`order-${String(order.id)}`}
+                    checked={selectedIds.has(String(order.id))}
+                    onCheckedChange={(checked) => handleSelectOrder(String(order.id), checked as boolean)}
                     className="h-5 w-5 mt-1"
                   />
                   <label
-                    htmlFor={`order-${order.id}`}
+                    htmlFor={`order-${String(order.id)}`}
                     className="flex-1 cursor-pointer"
                   >
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
                         <p className="font-bold text-gray-900">{order.fullName}</p>
                         <p className="text-sm text-gray-600">
-                          Order: #{order.id.slice(0, 8).toUpperCase()} • {order.product}
+                          Order: #{String(order.id).slice(0, 8).toUpperCase()} • {order.product}
                         </p>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           <span>Qty: {order.quantity}</span>
