@@ -49,7 +49,7 @@ const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(5);
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -336,7 +336,9 @@ const Orders = () => {
             </div>
           </CardContent>
         </Card>
-        <Pagination
+  <div className="mt-4">
+  <Pagination
+        
           total={total}
           page={page}
           limit={limit}
@@ -344,7 +346,8 @@ const Orders = () => {
           onLimitChange={(l) => { setLimit(l); setPage(1); }}
           limits={[5,10,15,20]}
           fixed={false} // embedded, right-aligned pagination
-        />
+
+        /></div>
       </div>
       <ConfirmModal
         isOpen={confirmOpen}

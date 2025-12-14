@@ -37,7 +37,7 @@ const Courier = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(5);
+    const [limit, setLimit] = useState(5);
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -400,7 +400,7 @@ Total Orders: ${selectedOrders.length}
           limit={limit}
           onPageChange={(p) => setPage(p)}
           onLimitChange={(l) => { setLimit(l); setPage(1); }}
-          limits={[5,10,15,20]}
+            limits={[5,10,15,20]}
           fixed={false}
         />
       </div>
