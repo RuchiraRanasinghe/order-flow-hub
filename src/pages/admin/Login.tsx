@@ -24,12 +24,33 @@ const AdminLogin = () => {
       const email = formData.email.trim();
       const password = formData.password.trim();
       const res = await loginUser({ email, password });
-      if (res && res.token && res.user && res.user.role === "admin") {
-        localStorage.setItem("adminAuthToken", res.token);
-        toast({ title: "Login Successful", description: "Welcome to admin dashboard" });
-        navigate("/admin/dashboard");
+      
+      // Check if response is valid
+      if (res && res.success && res.token && res.user) {
+        const userRole = res.user.role;
+        
+        // Handle different user roles
+        if (userRole === "admin") {
+          localStorage.setItem("adminAuthToken", res.token);
+          toast({ title: "Login Successful", description: "Welcome to admin dashboard" });
+          navigate("/admin/dashboard");
+        } else if (userRole === "courier") {
+          localStorage.setItem("courierAuthToken", res.token);
+          toast({ title: "Login Successful", description: "Welcome to courier dashboard" });
+          navigate("/admin/courier");
+        } else {
+          toast({ 
+            title: "Access Denied", 
+            description: `Access not allowed for role: ${userRole}`, 
+            variant: "destructive" 
+          });
+        }
       } else {
-        toast({ title: "Login Failed", description: "Invalid credentials or not an admin", variant: "destructive" });
+        toast({ 
+          title: "Login Failed", 
+          description: res?.message || "Invalid credentials", 
+          variant: "destructive" 
+        });
       }
     } catch (err: any) {
       toast({ title: "Login Failed", description: err.message || "Invalid credentials", variant: "destructive" });
@@ -54,7 +75,8 @@ const AdminLogin = () => {
        
         <CardHeader className="text-center">
           <img src={logo} alt="Logo" className="h-24 w-auto mx-auto mb-4" />
-          <CardTitle className="text-3xl font-bold">Admin Login</CardTitle>
+          <CardTitle className="text-3xl font-bold">Login</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">Admin & Courier Portal</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
