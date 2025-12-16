@@ -37,7 +37,7 @@ const AdminLogin = () => {
         } else if (userRole === "courier") {
           localStorage.setItem("courierAuthToken", res.token);
           toast({ title: "Login Successful", description: "Welcome to courier dashboard" });
-          navigate("/admin/courier");
+          navigate("/courier/dashboard");
         } else {
           toast({ 
             title: "Access Denied", 

@@ -12,6 +12,7 @@ import Courier from "./pages/admin/Courier";
 import Products from "./pages/admin/Products";
 import Analytics from "./pages/admin/Analytics";
 import Settings from "./pages/admin/Settings";
+import CourierDashboard from "./pages/curior/Dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/admin/products" element={<Products />} />
           <Route path="/admin/analytics" element={<Analytics />} />
           <Route path="/admin/settings" element={<Settings />} />
+          <Route path="/courier/dashboard" element={<CourierDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
