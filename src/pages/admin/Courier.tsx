@@ -159,7 +159,7 @@ const CourierDashboard = () => {
       "delivered": "green",
     };
     const labels: Record<string, string> = {
-      "sended": "Pending Pickup",
+      "sended": "Returned Orders",
       "in-transit": "In Transit",
       "delivered": "Delivered",
     };
@@ -237,7 +237,7 @@ Weight: Standard
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Pending Pickup
+                Returned Orders
               </CardTitle>
               <Clock className="w-4 h-4 text-yellow-500" />
             </CardHeader>
@@ -305,7 +305,7 @@ Weight: Standard
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="sended">Pending Pickup</SelectItem>
+                  <SelectItem value="sended"> Returned Orders</SelectItem>
                   <SelectItem value="in-transit">In Transit</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
