@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
-import AdminLayout from "@/components/admin/AdminLayout";
+import CourierLayout from "@/components/courier/CourierLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Eye, CheckCircle, Download } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Search, Eye, CheckCircle, Download, Truck, Package, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getCourierOrders, updateCourierStatus } from "@/services/courierService";
 import { InvoiceModal } from "@/components/modals/InvoiceModal";
-import { ExportCourierModal } from "@/components/modals/ExportCourierModal";
 import Pagination from '@/components/ui/paginations';
+import AdminLayout from "@/components/admin/AdminLayout";
 
 interface Order {
   id: string;
@@ -31,26 +30,45 @@ interface Order {
   trackingNumber?: string;
 }
 
-const Courier = () => {
-  const navigate = useNavigate();
+interface Stats {
+  pending: number;
+  inTransit: number;
+  delivered: number;
+  total: number;
+}
+
+const CourierDashboard = () => {
   const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [page, setPage] = useState(1);
-    const [limit, setLimit] = useState(5);
+  const [limit, setLimit] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [stats, setStats] = useState<Stats>({
+    pending: 0,
+    inTransit: 0,
+    delivered: 0,
+    total: 0,
+  });
 
-  const token = localStorage.getItem("adminAuthToken") || "";
+  const token = localStorage.getItem("courierAuthToken") || "";
 
   // Load courier orders from API
   const loadOrders = async () => {
     try {
-      const response = await getCourierOrders({ page, limit, status: statusFilter !== 'all' ? statusFilter : undefined, search: searchTerm || undefined }, token);
+      const response = await getCourierOrders(
+        { 
+          page, 
+          limit, 
+          status: statusFilter !== 'all' ? statusFilter : undefined, 
+          search: searchTerm || undefined 
+        }, 
+        token
+      );
 
       if (response && response.data && response.data.orders) {
         setOrders(response.data.orders as Order[]);
@@ -84,6 +102,17 @@ const Courier = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, limit, statusFilter, searchTerm]);
 
+  // Calculate stats
+  useEffect(() => {
+    const newStats: Stats = {
+      pending: orders.filter(o => o.status === "sended").length,
+      inTransit: orders.filter(o => o.status === "in-transit").length,
+      delivered: orders.filter(o => o.status === "delivered").length,
+      total: orders.length,
+    };
+    setStats(newStats);
+  }, [orders]);
+
   // Filter and search
   useEffect(() => {
     let filtered = orders;
@@ -96,7 +125,8 @@ const Courier = () => {
       filtered = filtered.filter(
         (order) =>
           order.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.mobile.includes(searchTerm)
+          order.mobile.includes(searchTerm) ||
+          order.address.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -111,12 +141,12 @@ const Courier = () => {
       );
       toast({
         title: "Status Updated",
-        description: `Courier status changed to "${newStatus}"`,
+        description: `Delivery status changed to ${newStatus}`,
       });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update courier status",
+        description: error.message || "Failed to update delivery status",
         variant: "destructive",
       });
     }
@@ -124,12 +154,12 @@ const Courier = () => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "outline" | "destructive" | "yellow" | "green"> = {
-      "sended": "green",
+      "sended": "yellow",
       "in-transit": "default",
-      "delivered": "outline",
+      "delivered": "green",
     };
     const labels: Record<string, string> = {
-      "sended": "Updated",
+      "sended": "Pending Pickup",
       "in-transit": "In Transit",
       "delivered": "Delivered",
     };
@@ -137,15 +167,13 @@ const Courier = () => {
   };
 
   const downloadOrderDetails = (order: Order) => {
-    // Generate PDF-like content
-  const content = `
+    const content = `
 =====================================
-        COURIER ORDER INVOICE
+        DELIVERY ORDER DETAILS
 =====================================
 
-Order Details
--------------
-Invoice Number: INV-${String(order.id).slice(0, 8).toUpperCase()}
+Order Information
+-----------------
 Order Number: #${String(order.id).slice(0, 8).toUpperCase()}
 Date: ${new Date(order.createdAt).toLocaleDateString()}
 Status: ${order.status.toUpperCase()}
@@ -157,31 +185,19 @@ Mobile: ${order.mobile}
 Email: ${order.email || 'N/A'}
 Address: ${order.address}
 
-Courier Details
----------------
+Delivery Details
+----------------
 Company: ${order.courierCompany || 'Express Delivery'}
 Tracking: ${order.trackingNumber || 'TRK-' + String(order.id).slice(0, 10).toUpperCase()}
-Method: Standard Delivery
 
-Order Items
------------
+Package Information
+-------------------
 Product: ${order.product}
 Quantity: ${order.quantity}
-Unit Price: Rs. ${(order.price || 1500).toLocaleString()}
-Subtotal: Rs. ${((order.price || 1500) * parseInt(order.quantity)).toLocaleString()}
-
-Payment Summary
----------------
-Subtotal: Rs. ${((order.price || 1500) * parseInt(order.quantity)).toLocaleString()}
-Delivery: Rs. ${(order.deliveryCharge || 200).toLocaleString()}
-${order.discount ? `Discount: -Rs. ${order.discount.toLocaleString()}` : ''}
--------------------------------------
-TOTAL: Rs. ${((order.price || 1500) * parseInt(order.quantity) + (order.deliveryCharge || 200) - (order.discount || 0)).toLocaleString()}
-
-Payment Method: Cash on Delivery (COD)
+Weight: Standard
 
 =====================================
-Thank you for your business!
+      Thank you for delivering!
 =====================================
     `.trim();
 
@@ -189,7 +205,7 @@ Thank you for your business!
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-  a.download = `invoice-${String(order.id).slice(0, 8)}.pdf`;
+    a.download = `delivery-${String(order.id).slice(0, 8)}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -197,70 +213,8 @@ Thank you for your business!
 
     toast({
       title: "Downloaded",
-      description: "Invoice downloaded successfully",
+      description: "Delivery details downloaded successfully",
     });
-  };
-
-  const handleExportSelected = (selectedOrders: Order[]) => {
-  const content = selectedOrders.map((order, index) => `
-=====================================
-    COURIER ORDER ${index + 1} OF ${selectedOrders.length}
-=====================================
-
-Order Number: #${String(order.id).slice(0, 8).toUpperCase()}
-Date: ${new Date(order.createdAt).toLocaleDateString()}
-Status: ${order.status.toUpperCase()}
-
-Customer: ${order.fullName}
-Mobile: ${order.mobile}
-Address: ${order.address}
-
-Product: ${order.product}
-Quantity: ${order.quantity}
-Total: Rs. ${((order.price || 1500) * parseInt(order.quantity) + (order.deliveryCharge || 200) - (order.discount || 0)).toLocaleString()}
-
-Courier: ${order.courierCompany || 'Express Delivery'}
-Tracking: ${order.trackingNumber || 'TRK-' + String(order.id).slice(0, 10).toUpperCase()}
-    `).join('\n\n');
-
-    const header = `
-=====================================
-   COURIER ORDERS EXPORT REPORT
-=====================================
-Export Date: ${new Date().toLocaleDateString()}
-Total Orders: ${selectedOrders.length}
-=====================================
-
-`;
-
-    const fullContent = header + content;
-
-    const blob = new Blob([fullContent], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `courier-orders-${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-
-    toast({
-      title: "Exported Successfully",
-      description: `${selectedOrders.length} courier order(s) exported as PDF`,
-    });
-  };
-
-  const openExportModal = () => {
-    if (filteredOrders.length === 0) {
-      toast({
-        title: "No Orders",
-        description: "No orders available to export",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsExportModalOpen(true);
   };
 
   const openInvoiceModal = (order: Order) => {
@@ -273,30 +227,73 @@ Total Orders: ${selectedOrders.length}
       <div className="space-y-6 pb-28">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold">Courier Management</h1>
-            <p className="text-muted-foreground mt-2">Track and manage delivery orders</p>
+            <h1 className="text-4xl font-bold">My Deliveries</h1>
+            <p className="text-muted-foreground mt-2">Manage your delivery orders</p>
           </div>
-          <Button
-            onClick={openExportModal}
-            className="bg-primary hover:bg-primary/90"
-            disabled={filteredOrders.length === 0}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export as PDF
-          </Button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Pending Pickup
+              </CardTitle>
+              <Clock className="w-4 h-4 text-yellow-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.pending}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                In Transit
+              </CardTitle>
+              <Truck className="w-4 h-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.inTransit}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Delivered
+              </CardTitle>
+              <CheckCircle className="w-4 h-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.delivered}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Orders
+              </CardTitle>
+              <Package className="w-4 h-4 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filters */}
         <Card>
           <CardHeader>
-            <CardTitle>Filters</CardTitle>
+            <CardTitle>Search & Filter</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name or mobile..."
+                  placeholder="Search by name, mobile, or address..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 rounded-2xl"
@@ -308,7 +305,7 @@ Total Orders: ${selectedOrders.length}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="sended">Updated</SelectItem>
+                  <SelectItem value="sended">Pending Pickup</SelectItem>
                   <SelectItem value="in-transit">In Transit</SelectItem>
                   <SelectItem value="delivered">Delivered</SelectItem>
                 </SelectContent>
@@ -317,7 +314,7 @@ Total Orders: ${selectedOrders.length}
           </CardContent>
         </Card>
 
-        {/* Courier Orders Table */}
+        {/* Delivery Orders Table */}
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -338,12 +335,16 @@ Total Orders: ${selectedOrders.length}
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium py-4">{order.fullName}</TableCell>
-                      <TableCell className="py-4 text-center max-w-xs truncate">{order.address}</TableCell>
+                      <TableCell className="py-4 text-center max-w-xs truncate" title={order.address}>
+                        {order.address}
+                      </TableCell>
                       <TableCell className="py-4 text-center">{order.mobile}</TableCell>
                       <TableCell className="py-4 text-center">{order.product}</TableCell>
                       <TableCell className="py-4 text-center">{order.quantity}</TableCell>
                       <TableCell className="py-4 text-center">{getStatusBadge(order.status)}</TableCell>
-                      <TableCell className="py-4 text-center">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="py-4 text-center">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </TableCell>
                       <TableCell className="py-4">
                         <div className="flex items-center justify-center gap-3">
                           <Button
@@ -351,7 +352,7 @@ Total Orders: ${selectedOrders.length}
                             size="icon"
                             onClick={() => openInvoiceModal(order)}
                             className="h-9 w-9"
-                            title="View Invoice"
+                            title="View Details"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -360,7 +361,7 @@ Total Orders: ${selectedOrders.length}
                             size="icon"
                             onClick={() => downloadOrderDetails(order)}
                             className="h-9 w-9"
-                            title="Download Order"
+                            title="Download Details"
                           >
                             <Download className="w-4 h-4" />
                           </Button>
@@ -383,31 +384,27 @@ Total Orders: ${selectedOrders.length}
                       </TableCell>
                     </TableRow>
                   ))}
-                  {/* Pad with empty rows to always show 6 rows */}
-                  {filteredOrders.length < 5 && Array.from({ length: 6 - filteredOrders.length }).map((_, idx) => (
-                    <TableRow key={`empty-row-${idx}`}>
-                      <TableCell className="py-4">&nbsp;</TableCell>
-                      <TableCell className="py-4" colSpan={7}></TableCell>
+                  {filteredOrders.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                        No delivery orders found
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
-              {filteredOrders.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  No courier orders found
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
-        {/* Pagination for courier orders */}
+
+        {/* Pagination */}
         <Pagination
           total={total}
           page={page}
           limit={limit}
           onPageChange={(p) => setPage(p)}
           onLimitChange={(l) => { setLimit(l); setPage(1); }}
-            limits={[5,10,15,20]}
+          limits={[10, 20, 30, 50]}
           fixed={false}
         />
       </div>
@@ -419,16 +416,8 @@ Total Orders: ${selectedOrders.length}
         order={selectedOrder}
         onDownload={downloadOrderDetails}
       />
-
-      {/* Export Courier Modal */}
-      <ExportCourierModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        orders={filteredOrders}
-        onExport={handleExportSelected}
-      />
     </AdminLayout>
   );
 };
 
-export default Courier;
+export default CourierDashboard;
